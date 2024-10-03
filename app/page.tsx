@@ -10,6 +10,9 @@ export default function Home() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setFile(event.target.files[0]);
+      console.log(`File selected: ${event.target.files[0].name}`); // 파일 이름 로그
+    } else {
+      console.error("No file selected"); // 파일이 선택되지 않았을 때의 로그
     }
   };
 
@@ -18,7 +21,9 @@ export default function Home() {
 
     if (file && file.type === "application/pdf") {
       const formData = new FormData();
-      formData.append("file", file); // Append the file to the formData
+      formData.append("file", file);
+      formData.append("fileName", file.name); // 파일 이름을 FormData에 추가
+      console.log(`File being sent: ${file.name}`); // 파일 이름 로그
 
       try {
         // Make a POST request to the /api/upload API route
@@ -31,7 +36,7 @@ export default function Home() {
 
         if (response.ok) {
           console.log("File uploaded successfully:", result.filePath);
-          router.push("/grid");
+          router.push("/grid"); // Redirect to the grid page after successful upload
         } else {
           console.error("Error uploading file:", result.error);
           alert("File upload failed: " + result.error);

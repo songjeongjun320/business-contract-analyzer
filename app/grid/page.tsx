@@ -1,4 +1,4 @@
-import { GridBox } from "./ui";
+import { GridBox } from './ui';
 
 export default function GridPage() {
   return (
