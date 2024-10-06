@@ -36,7 +36,7 @@ export default function Home() {
 
         if (response.ok) {
           console.log("File uploaded successfully:", result.filePath);
-          router.push("/grid"); // Redirect to the grid page after successful upload
+          router.push("/analysis"); // Redirect to the grid page after successful upload
         } else {
           console.error("Error uploading file:", result.error);
           alert("File upload failed: " + result.error);
