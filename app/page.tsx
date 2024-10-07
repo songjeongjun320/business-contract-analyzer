@@ -2,54 +2,49 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-
 export default function Home() {
-  const [file, setFile] = useState<File | null>(null);
-  const router = useRouter();
+  const [file, setFile] = useState<File | null>(null)
+  const [extractedText, setExtractedText] = useState<string | null>(null)
+  const router = useRouter()
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
-      setFile(event.target.files[0]);
-      console.log(`File selected: ${event.target.files[0].name}`); // 파일 이름 로그
-    } else {
-      console.error("No file selected"); // 파일이 선택되지 않았을 때의 로그
+      setFile(event.target.files[0])
     }
-  };
+  }
 
   const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+    event.preventDefault()
 
     if (file && file.type === "application/pdf") {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("fileName", file.name); // 파일 이름을 FormData에 추가
-      console.log(`File being sent: ${file.name}`); // 파일 이름 로그
+      const formData = new FormData()
+      formData.append("file", file)
 
       try {
-        // Make a POST request to the /api/upload API route
         const response = await fetch("/api/upload", {
           method: "POST",
           body: formData,
-        });
+        })
 
-        const result = await response.json();
+        const result = await response.json()
 
         if (response.ok) {
-          console.log("File uploaded successfully:", result.filePath);
-          router.push("/analysis"); // Redirect to the grid page after successful upload
+          setExtractedText(result.text)
+          // You might want to process the extracted text further here
+          // before navigating to the analysis page
+          router.push("/analysis")
         } else {
-          console.error("Error uploading file:", result.error);
-          alert("File upload failed: " + result.error);
+          console.error("Error processing file:", result.message)
+          alert("File processing failed: " + result.message)
         }
       } catch (error) {
-        console.error("Upload error:", error);
-        alert("An error occurred while uploading the file");
+        console.error("Upload error:", error)
+        alert("An error occurred while uploading the file")
       }
     } else {
-      alert("Please upload a valid PDF file.");
+      alert("Please upload a valid PDF file.")
     }
-  };
-
+  }
   return (
     <div className="flex justify-center items-center min-h-screen">
       <form
