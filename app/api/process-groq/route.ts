@@ -17,46 +17,48 @@ export async function POST(request: Request) {
 
     // Read the directory contents
     const files = await fs.readdir(splitDir);
-    // console.log("Files in split directory:", files);
-
     // Filter out only text files
     const textFiles = files.filter((file) => file.endsWith(".txt"));
-    // console.log("Text files found:", textFiles);
 
     // Process each text file
     const results = await Promise.all(
       textFiles.map(async (fileName) => {
-        // console.log("Processing file:", fileName);
         const filePath = path.join(splitDir, fileName);
         const text = await fs.readFile(filePath, "utf-8");
-        // console.log("File content length for", fileName, ":", text.length);
 
         try {
-          //   console.log("Sending request to Groq API for file:", fileName);
           console.time(`Groq API request for ${fileName}`);
           const response = await groq.chat.completions.create({
             messages: [
               {
                 role: "system",
-                content:
-                  "You are an AI that categorizes contract clauses into four categories: low cost & high protection, high cost & high protection, low cost & low protection, and high cost & low protection. without any explanation just json format",
+                content: `Categorize contract clauses into the following categories based on cost and protection level:
+                  
+                  - low cost & high protection
+                  - high cost & high protection
+                  - low cost & low protection
+                  - high cost & low protection
+                  
+                  Your response must only be in the following JSON format without any extra explanation:
+                  
+                  {
+                    "low cost & high protection": [],
+                    "high cost & high protection": [],
+                    "low cost & low protection": [],
+                    "high cost & low protection": []
+                  }
+                  
+                  Ignore irrelevant clauses.`,
               },
               {
                 role: "user",
-                content: `Categorize the following text into four categories: "low cost & high protection", "high cost & high protection", "low cost & low protection", and "high cost & low protection". Respond only with a valid, complete JSON object exactly in the following format. Ensure the JSON object is properly closed with a curly brace and contains no additional explanation or text:\n
-              {
-                "low cost & high protection": [],
-                "high cost & high protection": [],
-                "low cost & low protection": [],
-                "high cost & low protection": []
-              }
-              Categorize the text here:\n\n${text}`,
+                content: `Here is the text to categorize:\n\n${text}`,
               },
             ],
             model: "llama3-8b-8192",
           });
           console.timeEnd(`Groq API request for ${fileName}`);
-          //   console.log("Received response from Groq API for file:", fileName);
+          console.log("Received response from Groq API for file:", fileName);
 
           let jsonContent =
             response.choices?.[0]?.message?.content?.trim() || "";
@@ -81,11 +83,9 @@ export async function POST(request: Request) {
             };
           }
 
-          // Save the result to a JSON file, appending to existing data if present
-          const resultFileName = "all_results.json"; // Common filename to store all results
+          const resultFileName = "all_results.json";
           const resultFilePath = path.join(splitDir, resultFileName);
 
-          // Default structure for existing data
           let existingData: Record<string, string[]> = {
             "low cost & high protection": [],
             "high cost & high protection": [],
@@ -93,7 +93,6 @@ export async function POST(request: Request) {
             "high cost & low protection": [],
           };
 
-          // Check if the file exists, if it does, read and parse the existing data
           try {
             const existingFileContent = await fs.readFile(
               resultFilePath,
@@ -105,39 +104,41 @@ export async function POST(request: Request) {
             console.log("No existing JSON file, creating a new one.");
           }
 
-          // Merge new data with existing data
           (
             Object.keys(newCategories) as Array<keyof typeof existingData>
           ).forEach((categoryKey) => {
-            // Ensure that the existing data is an array
             if (!Array.isArray(existingData[categoryKey])) {
               existingData[categoryKey] = [];
             }
 
-            // Merge new clauses into the existing category array
             existingData[categoryKey] = [
               ...existingData[categoryKey],
               ...newCategories[categoryKey].filter(
                 (clause: string) => !!clause
-              ), // Ensure no empty strings are added
+              ),
             ];
           });
 
           // Save the merged result to the JSON file
-          await fs.writeFile(
-            resultFilePath,
-            JSON.stringify(existingData, null, 2)
-          );
-          console.log("Saved updated result to JSON file:", resultFileName);
+          try {
+            await fs.writeFile(
+              resultFilePath,
+              JSON.stringify(existingData, null, 2)
+            );
+            console.log("Saved updated result to JSON file:", resultFileName);
+          } catch (writeError) {
+            console.error(
+              `Error saving updated result for ${fileName}:`,
+              writeError
+            );
+          }
 
-          // Add the console message for stacking information
           console.log(`
 ======================
 ${fileName} result is stacked to ${resultFileName}
 ======================
 `);
 
-          // Return JSON file path as part of the response
           return { fileName: resultFileName, filePath: resultFilePath };
         } catch (error) {
           console.error(`Error processing ${fileName} with Groq:`, error);
@@ -163,7 +164,6 @@ ${fileName} result is stacked to ${resultFileName}
       throw new Error("No pages were successfully processed");
     }
 
-    // Send back successful result JSON paths
     return NextResponse.json({
       results: successfulResults,
       errors,

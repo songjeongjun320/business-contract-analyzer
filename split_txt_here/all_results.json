@@ -1,6 +1,54 @@
 {
-  "low cost & high protection": [],
-  "high cost & high protection": [],
-  "low cost & low protection": [],
-  "high cost & low protection": []
+  "low cost & high protection": [
+    "4.1",
+    "5.3",
+    "6.1",
+    "7.1",
+    "8.1",
+    "9.1",
+    "Worker's Compensation",
+    "Property/Contractor's Equipment",
+    "Extend the time frame for Subcontractor to cure the condition, providing the Subcontractor is earnestly engaged in rectifying the condition.",
+    "Accept any defective work or materials and reduce the Subcontract Sum by Change Order.",
+    "In the event of any default by Subcontractor, General Contractor shall give Subcontractor written Notice of the deficient condition and allow the Subcontractor 48 hours to cure said default"
+  ],
+  "high cost & high protection": [
+    "2.2",
+    "3.3",
+    "5.4",
+    "6.2",
+    "7.2",
+    "8.2",
+    "9.2",
+    "1. Subcontractor shall verify that all surfaces and conditions are ready for construction.",
+    "2. Subcontractor shall comply with all federal, state, and local laws, regulations, ordinances, building codes, and other rules applicable to Subcontractor's performance of the Work.",
+    "6. In the event General Contractor and Subcontractor cannot agree on whether or not the work is changed or extra work, or on the value of or time impact as a result of changed or extra work, or if Subcontractor is directed to proceed with changed or extra work prior to issuance of a change order, Subcontractor shall proceed with and timely prosecute the work as directed by General Contractor.",
+    "Commercial General Liability",
+    "Automobile Liability",
+    "Umbrella/Excess Liability"
+  ],
+  "low cost & low protection": [
+    "4.2",
+    "5.1",
+    "6.3",
+    "7.3",
+    "8.3",
+    "3. Under no conditions shall Subcontractor make any changes, either as additions or deletions, without written order or direction from the General Contractor.",
+    "Terminate this Agreement for cause in writing.",
+    "Notwithstanding any other provisions in this Agreement, General Contractor reserves the sole discretionary right to require Subcontractor to provide additional assurances as to Subcontractor's performance."
+  ],
+  "high cost & low protection": [
+    "2.1",
+    "3.1",
+    "3.2",
+    "4.3",
+    "9.3",
+    "10. In the event that a change is made or extra work is required by the Owner or its agents, and the resulting Subcontractor's change request meets the merit and timeliness requirement set forth in the Prime Contract, the General Contractor will present it to the Owner.",
+    "14. Subcontractor cannot submit a payment request for changed or extra work until a Change Order for the work has been executed by the General Contractor and Subcontractor.",
+    "Labor and Material Payment Bond",
+    "Performance Bond",
+    "Perform, or have arranged to be performed, any of the Subcontractor's duties, the cost (including associated overhead and fees) of which shall be deducted from the Subcontractor.",
+    "Withhold payment or a portion of payment otherwise due and of a value appropriate for the condition of default.",
+    "In a termination for convenience, the payment to Subcontractor shall be limited to the value of the Subcontract work completed, plus reasonable markup for home office overhead and profit, less any deductive credits or amounts due from Subcontractor."
+  ]
 }

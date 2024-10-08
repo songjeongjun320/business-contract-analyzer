@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     await fs.mkdir(outputDir, { recursive: true });
 
     // Run the PDF splitter script
-    const command = `"C:/Users/frank/AppData/Local/Programs/Python/Python312/python.exe" "C:/Users/frank/Desktop/toxic_clauses_detector_in_business_contract/app/api/upload/pdf_splitter.py" "${filePath}" "${outputDir}"`;
+    const command = `"C:/Users/frank/AppData/Local/Programs/Python/Python312/python.exe" "C:/Users/frank/Desktop/toxic_clauses_detector_in_business_contract/app/api/upload/pdf_processor.py" "${filePath}" "${outputDir}"`;
     await runPythonScript(command);
 
     // Read the split PDF files from the output directory
