@@ -58,12 +58,26 @@ def split_pdf_and_save(input_pdf_path, output_pdf_dir, output_txt_dir):
             # Extract text from the page and clean it
             page_text = page.extract_text()
             if page_text:  # If there's text on the page
+                original_txt_path = os.path.join(output_txt_dir, f"{i + 1}.txt")
+                
+                # Save the original text (optional)
+                with open(original_txt_path, 'w', encoding='utf-8') as original_txt_file:
+                    original_txt_file.write(page_text)
+
+                # Clean the text and add line breaks
                 cleaned_text = clean_contract_text(page_text)  # 텍스트 클리닝
                 final_text = insert_line_breaks(cleaned_text)  # 줄바꿈 추가
-                output_txt_path = os.path.join(output_txt_dir, f"{i + 1}.txt")
+                
+                # Save the cleaned text with '_clean' in the file name
+                output_txt_path = os.path.join(output_txt_dir, f"{i + 1}_clean.txt")
                 print(f"Writing cleaned and formatted TXT: {output_txt_path}")
                 with open(output_txt_path, 'w', encoding='utf-8') as output_txt_file:
                     output_txt_file.write(final_text)
+
+                # Delete the original 1.txt file
+                if os.path.exists(original_txt_path):
+                    print(f"Deleting original TXT: {original_txt_path}")
+                    os.remove(original_txt_path)
             else:
                 print(f"Page {i + 1} has no text or text could not be extracted.")
     
