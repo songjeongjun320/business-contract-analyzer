@@ -59,6 +59,10 @@ export async function POST(request: Request) {
           });
           console.timeEnd(`Groq API request for ${fileName}`);
           console.log("Received response from Groq API for file:", fileName);
+          console.log(
+            "Raw response from Groq API:",
+            response.choices?.[0]?.message?.content
+          );
 
           let jsonContent =
             response.choices?.[0]?.message?.content?.trim() || "";
@@ -134,10 +138,10 @@ export async function POST(request: Request) {
           }
 
           console.log(`
-======================
-${fileName} result is stacked to ${resultFileName}
-======================
-`);
+            ======================
+            ${fileName} result is stacked to ${resultFileName}
+            ======================
+          `);
 
           return { fileName: resultFileName, filePath: resultFilePath };
         } catch (error) {

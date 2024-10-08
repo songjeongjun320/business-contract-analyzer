@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import jsPDF from "jspdf"; // jsPDF 라이브러리 추가
+import autoTable from "jspdf-autotable"; // 표를 자동으로 만들어주는 플러그인
 
 // JSON 파일 형태의 결과 데이터 타입
 interface AnalysisResult {
@@ -99,11 +101,43 @@ export default function AnalysisPage() {
     },
   ];
 
+  // PDF로 다운로드하는 함수
+  const downloadPDF = () => {
+    const doc = new jsPDF(); // 새로운 PDF 문서 생성
+
+    doc.text("Contract Analysis Result", 10, 10); // 제목 추가
+
+    // 각 섹션별로 테이블 생성
+    sections.forEach((section, index) => {
+      // 섹션의 제목과 설명 추가
+      doc.text(section.title, 10, (index + 1) * 30);
+      doc.text(section.description, 10, (index + 1) * 35);
+
+      // 해당 섹션의 항목을 테이블로 추가
+      autoTable(doc, {
+        startY: (index + 1) * 40, // 각 섹션별로 간격을 조정
+        head: [["Clauses"]],
+        body: section.items.map((item) => [item]), // 각 항목을 테이블로 변환
+      });
+    });
+
+    doc.save("analysis_result.pdf"); // PDF 파일 저장
+  };
+
   return (
     <div className="min-h-screen p-8 bg-gray-100">
       <h1 className="mb-6 text-3xl font-bold text-center text-gray-800">
         Contract Analysis Result
       </h1>
+      <div className="flex justify-end mb-4">
+        {/* PDF 다운로드 버튼 */}
+        <button
+          onClick={downloadPDF}
+          className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+        >
+          Download PDF
+        </button>
+      </div>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {sections.map((section, index) => (
           <div
