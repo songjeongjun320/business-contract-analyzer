@@ -3,48 +3,48 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 export default function Home() {
-  const [file, setFile] = useState<File | null>(null)
-  const [extractedText, setExtractedText] = useState<string | null>(null)
-  const router = useRouter()
+  const [file, setFile] = useState<File | null>(null);
+  const [extractedText, setExtractedText] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
-      setFile(event.target.files[0])
+      setFile(event.target.files[0]);
     }
-  }
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
+    event.preventDefault();
 
     if (file && file.type === "application/pdf") {
-      const formData = new FormData()
-      formData.append("file", file)
+      const formData = new FormData();
+      formData.append("file", file);
 
       try {
         const response = await fetch("/api/upload", {
           method: "POST",
           body: formData,
-        })
+        });
 
-        const result = await response.json()
+        const result = await response.json();
 
         if (response.ok) {
-          setExtractedText(result.text)
+          setExtractedText(result.text);
           // You might want to process the extracted text further here
           // before navigating to the analysis page
-          router.push("/analysis")
+          router.push("/analysis");
         } else {
-          console.error("Error processing file:", result.message)
-          alert("File processing failed: " + result.message)
+          console.error("Error processing file:", result.message);
+          alert("File processing failed: " + result.message);
         }
       } catch (error) {
-        console.error("Upload error:", error)
-        alert("An error occurred while uploading the file")
+        console.error("Upload error:", error);
+        alert("An error occurred while uploading the file");
       }
     } else {
-      alert("Please upload a valid PDF file.")
+      alert("Please upload a valid PDF file.");
     }
-  }
+  };
   return (
     <div className="flex justify-center items-center min-h-screen">
       <form
