@@ -41,3 +41,7 @@ db
 
 # .env key
 .env
+
+# txt, pdf
+*.txt
+*.pdf

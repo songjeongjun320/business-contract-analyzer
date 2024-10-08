@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
-  const [extractedText, setExtractedText] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -15,36 +16,61 @@ export default function Home() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setIsLoading(true);
 
     if (file && file.type === "application/pdf") {
       const formData = new FormData();
       formData.append("file", file);
 
       try {
-        const response = await fetch("/api/upload", {
+        // 파일 업로드
+        const uploadResponse = await fetch("/api/upload", {
           method: "POST",
           body: formData,
         });
 
-        const result = await response.json();
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed: ${await uploadResponse.text()}`);
+        }
 
-        if (response.ok) {
-          setExtractedText(result.text);
-          // You might want to process the extracted text further here
-          // before navigating to the analysis page
-          router.push("/analysis");
+        const uploadResult = await uploadResponse.json();
+
+        // 업로드한 파일을 기반으로 Groq API 호출
+        const groqResponse = await fetch("/api/process-groq", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ pages: uploadResult.results }),
+        });
+
+        if (!groqResponse.ok) {
+          const errorData = await groqResponse.json();
+          throw new Error(`Groq processing failed: ${errorData.error}`);
+        }
+
+        const groqResult = await groqResponse.json();
+
+        // Groq 분석 결과에서 JSON 파일 경로 추출
+        if (groqResult.results && groqResult.results.length > 0) {
+          const jsonFilePath = groqResult.results[0].filePath; // JSON 파일 경로 추출
+          // JSON 파일 경로를 분석 페이지로 전달
+          router.push(`/analysis?jsonPath=${encodeURIComponent(jsonFilePath)}`);
         } else {
-          console.error("Error processing file:", result.message);
-          alert("File processing failed: " + result.message);
+          throw new Error("No pages were successfully processed");
         }
       } catch (error) {
-        console.error("Upload error:", error);
-        alert("An error occurred while uploading the file");
+        console.error("Error:", error);
+        alert(error instanceof Error ? error.message : "An error occurred");
+      } finally {
+        setIsLoading(false);
       }
     } else {
       alert("Please upload a valid PDF file.");
+      setIsLoading(false);
     }
   };
+
   return (
     <div className="flex justify-center items-center min-h-screen">
       <form
@@ -56,8 +82,9 @@ export default function Home() {
         <button
           type="submit"
           className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+          disabled={isLoading}
         >
-          Upload and Proceed
+          {isLoading ? "Processing..." : "Upload and Proceed"}
         </button>
       </form>
     </div>

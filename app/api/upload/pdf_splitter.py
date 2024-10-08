@@ -11,13 +11,14 @@ def split_pdf_and_save(input_pdf_path, output_pdf_dir, output_txt_dir):
         os.makedirs(output_pdf_dir)
     if not os.path.exists(output_txt_dir):
         os.makedirs(output_txt_dir)
-    
+
     # Open the PDF file
     with open(input_pdf_path, 'rb') as pdf_file:
         reader = PdfReader(pdf_file)
         num_pages = len(reader.pages)
 
-        print(f"Total Pages: {num_pages}")
+        # 페이지 수 확인
+        print(f"Total Pages in PDF: {num_pages}")
 
         # Loop over each page, save each as a new PDF and extract text
         for i in range(num_pages):
@@ -39,7 +40,7 @@ def split_pdf_and_save(input_pdf_path, output_pdf_dir, output_txt_dir):
                 with open(output_txt_path, 'w', encoding='utf-8') as output_txt_file:
                     output_txt_file.write(page_text)
             else:
-                print(f"Page {i + 1} has no text.")
+                print(f"Page {i + 1} has no text or text could not be extracted.")
     
     print("PDF splitting and text extraction completed successfully.")
 
