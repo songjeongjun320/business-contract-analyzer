@@ -21,7 +21,7 @@ def clean_contract_text(text):
 
 def insert_line_breaks(text):
     # 문장이 끝나는 곳에 줄바꿈을 추가 (마침표, 느낌표, 물음표)
-    text_with_breaks = re.sub(r'([.!?])\s+', r'\1\n', text)
+    text_with_breaks = re.sub(r'([.!?])\s+', r'\1\n\n', text)
     return text_with_breaks
 
 def split_pdf_and_save(input_pdf_path, output_pdf_dir, output_txt_dir):
