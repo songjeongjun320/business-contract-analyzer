@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const textFiles = files.filter((file) => file.endsWith(".txt"));
 
     // Python API 서버에 GET 요청을 보내서 항목 리스트를 가져옴
-    const pythonApiUrl = "http://localhost:5000/process-toxicity"; // Python API 서버 엔드포인트
+    const pythonApiUrl = "http://127.0.0.1:5000/process-toxicity"; // IPv4 주소 사용
     const pythonApiResponse = await fetch(pythonApiUrl);
     const toxicityResult = await pythonApiResponse.json(); // Python API의 결과를 JSON으로 변환
     const allItemsList = toxicityResult.all_items; // 모든 아이템 리스트 가져오기
