@@ -1,15 +1,18 @@
 {
-  "name": "catching_hidden_claues",
+  "name": "catching_hidden_clauses",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently \"npm run next-dev\" \"npm run flask-dev\"",
+    "next-dev": "next dev",
+    "flask-dev": "python flask_api.py",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "@aws-sdk/client-textract": "^3.665.0",
+    "concurrently": "^9.0.1",
     "groq-sdk": "^0.7.0",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.3",

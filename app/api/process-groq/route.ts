@@ -7,18 +7,36 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-const DB_DIRECTORY = path.join(process.cwd(), "app/db");
+// 결과 파일이 저장될 디렉토리 설정 (db/result)
+const RESULT_DIRECTORY = path.join(process.cwd(), "app/db/result");
 
 export async function POST(request: Request) {
   console.log("POST request received");
   try {
-    const splitDir = path.join(DB_DIRECTORY, "split_txt_here");
+    const splitDir = path.join(process.cwd(), "app/db/split_txt_here");
     console.log("Split directory set to:", splitDir);
 
     // Read the directory contents
     const files = await fs.readdir(splitDir);
     // Filter out only text files
     const textFiles = files.filter((file) => file.endsWith(".txt"));
+
+    // Python API 서버에 GET 요청을 보내서 항목 리스트를 가져옴
+    const pythonApiUrl = "http://localhost:5000/process-toxicity"; // Python API 서버 엔드포인트
+    const pythonApiResponse = await fetch(pythonApiUrl);
+    const toxicityResult = await pythonApiResponse.json(); // Python API의 결과를 JSON으로 변환
+    const allItemsList = toxicityResult.all_items; // 모든 아이템 리스트 가져오기
+
+    // AI API 요청 전에 모든 아이템 리스트를 JSON 형식으로 저장
+    let baseData: Record<string, string[]> = {};
+    allItemsList.forEach((item: string) => {
+      baseData[item] = []; // 각 item이 key가 되고 value는 빈 배열
+    });
+
+    // baseData를 db/result/base_data.json 파일로 저장
+    const baseDataFilePath = path.join(RESULT_DIRECTORY, "base_data.json");
+    await fs.writeFile(baseDataFilePath, JSON.stringify(baseData, null, 2));
+    console.log("Saved baseData to base_data.json");
 
     // Process each text file
     const results = await Promise.all(
@@ -28,31 +46,27 @@ export async function POST(request: Request) {
 
         try {
           console.time(`Groq API request for ${fileName}`);
+
+          // AI API에 baseData를 함께 보내어 결과를 해당 형식에 맞춰 받기
           const response = await groq.chat.completions.create({
             messages: [
               {
                 role: "system",
-                content: `Categorize contract clauses into the following categories based on cost and protection level:
-                  
-                  - low cost & high protection
-                  - high cost & high protection
-                  - low cost & low protection
-                  - high cost & low protection
-                  
-                  Your response must only be in the following JSON format without any extra explanation:
+                content: `Here is a JSON structure representing contract clause items: ${JSON.stringify(
+                  baseData
+                )}. For each item in the list, find related clauses in the provided text. Your response should match the exact format below, filling each item with its related clauses. Return the response in the following JSON format:
                   
                   {
-                    "low cost & high protection": [],
-                    "high cost & high protection": [],
-                    "low cost & low protection": [],
-                    "high cost & low protection": []
+                    "item1": ["related clause 1", "related clause 2"],
+                    "item2": ["related clause 1", "related clause 2"],
+                    ...
                   }
                   
-                  Ignore irrelevant clauses.`,
+                  Do not include any additional explanations. Ignore any text that does not relate to the items.`,
               },
               {
                 role: "user",
-                content: `Here is the text to categorize:\n\n${text}`,
+                content: `Here is the text to analyze:\n\n${text}`,
               },
             ],
             model: "llama3-8b-8192",
@@ -64,38 +78,30 @@ export async function POST(request: Request) {
             response.choices?.[0]?.message?.content
           );
 
+          // Parse response into JSON
           let jsonContent =
             response.choices?.[0]?.message?.content?.trim() || "";
           if (!jsonContent.endsWith("}")) {
             jsonContent += "}";
           }
 
-          let newCategories;
+          let categorizedClauses;
           try {
-            newCategories = JSON.parse(jsonContent);
-            console.log("Successfully parsed categories for file:", fileName);
+            categorizedClauses = JSON.parse(jsonContent);
+            console.log("Successfully parsed clauses for file:", fileName);
           } catch (error) {
             console.error(
               `Error parsing Groq response for ${fileName}:`,
               error
             );
-            newCategories = {
-              "low cost & high protection": [],
-              "high cost & high protection": [],
-              "low cost & low protection": [],
-              "high cost & low protection": [],
-            };
+            categorizedClauses = baseData; // 기본 구조로 설정
           }
 
-          const resultFileName = "all_results.json";
-          const resultFilePath = path.join(splitDir, resultFileName);
+          const resultFileName = "all_results.json"; // 결과 파일은 모든 결과가 하나로 모아진 파일에 저장
+          const resultFilePath = path.join(RESULT_DIRECTORY, resultFileName); // db/result 폴더에 저장
 
-          let existingData: Record<string, string[]> = {
-            "low cost & high protection": [],
-            "high cost & high protection": [],
-            "low cost & low protection": [],
-            "high cost & low protection": [],
-          };
+          // 기존 결과 파일이 있으면 불러오기
+          let existingData: Record<string, string[]> = { ...baseData }; // baseData를 복사하여 기본 형식 유지
 
           try {
             const existingFileContent = await fs.readFile(
@@ -108,8 +114,9 @@ export async function POST(request: Request) {
             console.log("No existing JSON file, creating a new one.");
           }
 
+          // 새 결과를 기존 데이터에 추가
           (
-            Object.keys(newCategories) as Array<keyof typeof existingData>
+            Object.keys(categorizedClauses) as Array<keyof typeof existingData>
           ).forEach((categoryKey) => {
             if (!Array.isArray(existingData[categoryKey])) {
               existingData[categoryKey] = [];
@@ -117,13 +124,13 @@ export async function POST(request: Request) {
 
             existingData[categoryKey] = [
               ...existingData[categoryKey],
-              ...newCategories[categoryKey].filter(
+              ...categorizedClauses[categoryKey].filter(
                 (clause: string) => !!clause
               ),
             ];
           });
 
-          // Save the merged result to the JSON file
+          // Save the updated result to the JSON file (결과를 기존 파일에 덧붙여 저장)
           try {
             await fs.writeFile(
               resultFilePath,
@@ -136,12 +143,6 @@ export async function POST(request: Request) {
               writeError
             );
           }
-
-          console.log(`
-            ======================
-            ${fileName} result is stacked to ${resultFileName}
-            ======================
-          `);
 
           return { fileName: resultFileName, filePath: resultFilePath };
         } catch (error) {
@@ -165,7 +166,7 @@ export async function POST(request: Request) {
     }
 
     if (successfulResults.length === 0) {
-      throw new Error("No pages were successfully processed");
+      throw new Error("No files were successfully processed");
     }
 
     return NextResponse.json({
