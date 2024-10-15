@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Groq } from "groq-sdk";
 import fs from "fs/promises";
 import path from "path";
+import { execFile } from "child_process"; // Fixed the quote mismatch
 import { processFinalResults } from "./processFinalResults"; // Import the final result processor
 
 const groq = new Groq({
@@ -21,10 +22,26 @@ export async function POST(request: Request) {
     const files = await fs.readdir(splitDir);
     const textFiles = files.filter((file) => file.endsWith(".txt"));
 
-    // Fetch toxicity data from Python API
-    const pythonApiUrl = "http://127.0.0.1:5000/process-toxicity";
-    const pythonApiResponse = await fetch(pythonApiUrl);
-    const toxicityResult = await pythonApiResponse.json();
+    // Define the path to the Python executable
+    const pythonExecutable =
+      "C:/Users/frank/AppData/Local/Programs/Python/Python312/python.exe";
+
+    // Define the path to the Python script
+    const pythonScriptPath =
+      "C:/Users/frank/Desktop/toxic_clauses_detector_in_business_contract/app/api/process-groq/model_create.py";
+
+    // Execute Python script to fetch toxicity data
+    const { stdout, stderr } = await execFile(pythonExecutable, [
+      pythonScriptPath,
+    ]);
+
+    if (stderr) {
+      console.error("Error running Python script:", stderr);
+      throw new Error(String(stderr)); // Convert stderr to string
+    }
+
+    // Parse the output from the Python script
+    const toxicityResult = JSON.parse(String(stdout));
 
     // Define toxicity categories
     const allItemsList = toxicityResult.all_items;

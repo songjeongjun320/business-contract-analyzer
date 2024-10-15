@@ -3,9 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run next-dev\" \"npm run flask-dev\"",
+    "dev": "npm run next-dev",
     "next-dev": "next dev",
-    "flask-dev": "python flask_api.py",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

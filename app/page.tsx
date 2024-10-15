@@ -28,6 +28,7 @@ export default function Home() {
     if (file && file.type === "application/pdf") {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("fileName", file.name); // 파일 이름을 추가
 
       try {
         const uploadResponse = await fetch("/api/upload", {
