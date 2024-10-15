@@ -1,70 +1,38 @@
 import { NextResponse } from "next/server";
-import { exec } from "child_process";
-import { promises as fs } from "fs";
-import path from "path";
-
-const DB_DIRECTORY = path.join(process.cwd(), "app/db");
-
-function runPythonScript(command: string) {
-  return new Promise((resolve, reject) => {
-    console.log(`Executing command: ${command}`);
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing script: ${stderr}`);
-        reject(stderr);
-      } else {
-        console.log(`Script output: ${stdout}`);
-        resolve(stdout);
-      }
-    });
-  });
-}
 
 export async function POST(request: Request) {
   const formData = await request.formData();
   const file = formData.get("file") as File;
-  let fileName = formData.get("fileName") as string;
 
   if (!file) {
     return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
   }
 
-  if (!fileName) {
-    fileName = `uploaded_file_${Date.now()}.pdf`;
-  }
-
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  const filePath = path.join(DB_DIRECTORY, fileName);
-
   try {
-    // Create directories if they do not exist
-    await fs.mkdir(DB_DIRECTORY, { recursive: true });
-    await fs.writeFile(filePath, buffer);
+    // Prepare the form data to send to the Flask API
+    const uploadData = new FormData();
+    uploadData.append("file", file);
 
-    const outputDir = path.join(DB_DIRECTORY, "split");
-    await fs.mkdir(outputDir, { recursive: true });
+    // Make a POST request to the Flask API to process the PDF
+    const flaskResponse = await fetch("http://127.0.0.1:5000/process-pdf", {
+      method: "POST",
+      body: uploadData,
+    });
 
-    // Run the PDF splitter script
-    const command = `"C:/Users/frank/AppData/Local/Programs/Python/Python312/python.exe" "C:/Users/frank/Desktop/toxic_clauses_detector_in_business_contract/app/api/upload/pdf_processor.py" "${filePath}" "${outputDir}"`;
-    await runPythonScript(command);
+    // Handle the Flask API response
+    if (!flaskResponse.ok) {
+      throw new Error(`Flask API error: ${flaskResponse.statusText}`);
+    }
 
-    // Read the split PDF files from the output directory
-    const splitFiles = await fs.readdir(outputDir);
+    const result = await flaskResponse.json();
 
-    // Assuming further processing like saving PDF pages or logging results
-    const pdfResults = splitFiles.map((file) => ({
-      fileName: file,
-      filePath: path.join(outputDir, file),
-    }));
-
+    // Return the result from the Flask API to the Next.js client
     return NextResponse.json({
-      message: "PDF split and reading successfully",
-      results: pdfResults,
+      message: result.message,
+      results: result.results,
     });
   } catch (error) {
-    console.error("Error uploading or processing file:", error);
+    console.error("Error processing file through Flask:", error);
     return NextResponse.json(
       { error: "Failed to process PDF" },
       { status: 500 }

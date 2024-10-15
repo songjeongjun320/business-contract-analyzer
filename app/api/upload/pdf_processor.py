@@ -1,6 +1,7 @@
 from PyPDF2 import PdfReader, PdfWriter
 from pdfminer.high_level import extract_text
 import os
+import sys
 
 def split_pdf_and_save(input_pdf_path, output_pdf_dir, output_txt_dir):
     print(f"Splitting PDF: {input_pdf_path}")
@@ -8,10 +9,8 @@ def split_pdf_and_save(input_pdf_path, output_pdf_dir, output_txt_dir):
     print(f"Output TXT Directory: {output_txt_dir}")
 
     # Create the output directories if they don't exist
-    if not os.path.exists(output_pdf_dir):
-        os.makedirs(output_pdf_dir)
-    if not os.path.exists(output_txt_dir):
-        os.makedirs(output_txt_dir)
+    os.makedirs(output_pdf_dir, exist_ok=True)
+    os.makedirs(output_txt_dir, exist_ok=True)
 
     # Open the PDF file
     with open(input_pdf_path, 'rb') as pdf_file:
@@ -27,8 +26,11 @@ def split_pdf_and_save(input_pdf_path, output_pdf_dir, output_txt_dir):
             page = reader.pages[i]
             writer.add_page(page)
 
+            # Format the page number to have leading zeros (e.g., 01, 02, 03, ...)
+            page_num = str(i + 1).zfill(2)
+
             # Save the PDF file for each page
-            output_pdf_path = os.path.join(output_pdf_dir, f"page_{i + 1}.pdf")
+            output_pdf_path = os.path.join(output_pdf_dir, f"page_{page_num}.pdf")
             print(f"Writing PDF: {output_pdf_path}")
             with open(output_pdf_path, 'wb') as output_pdf_file:
                 writer.write(output_pdf_file)
@@ -36,37 +38,32 @@ def split_pdf_and_save(input_pdf_path, output_pdf_dir, output_txt_dir):
             # Extract text from the original PDF file for the current page
             page_text = extract_text(input_pdf_path, page_numbers=[i])
             if page_text:  # If there's text on the page
-                original_txt_path = os.path.join(output_txt_dir, f"{i + 1}.txt")
-
-                # Save the original text (optional)
-                with open(original_txt_path, 'w', encoding='utf-8') as original_txt_file:
-                    original_txt_file.write(page_text)
-
                 # Save the cleaned text with '_clean' in the file name
-                output_txt_path = os.path.join(output_txt_dir, f"{i + 1}_clean.txt")
+                output_txt_path = os.path.join(output_txt_dir, f"{page_num}_clean.txt")
                 print(f"Writing cleaned and formatted TXT: {output_txt_path}")
                 with open(output_txt_path, 'w', encoding='utf-8') as output_txt_file:
                     output_txt_file.write(page_text)
-
-                # Delete the original 1.txt file
-                if os.path.exists(original_txt_path):
-                    print(f"Deleting original TXT: {original_txt_path}")
-                    os.remove(original_txt_path)
             else:
                 print(f"Page {i + 1} has no text or text could not be extracted.")
 
     print("PDF splitting and text extraction completed successfully.")
 
-# Main function to execute the script standalone
+# Main function to execute the script standalone or via command line
 if __name__ == "__main__":
-    # Replace these paths with your own test paths
-    input_pdf_path = "C:/Users/frank/Desktop/toxic_clauses_detector_in_business_contract/pure_contract.pdf"  # Default pdf position
-    output_pdf_dir = "C:/Users/frank/Desktop/toxic_clauses_detector_in_business_contract/app/db/split_pdf_here"  # PDF save path
-    output_txt_dir = "C:/Users/frank/Desktop/toxic_clauses_detector_in_business_contract/app/db/split_txt_here"  # TXT save path
+    # Check if arguments are passed via the command line
+    if len(sys.argv) != 4:
+        print("Usage: python pdf_processor.py <input_pdf_path> <output_pdf_dir> <output_txt_dir>")
+        sys.exit(1)
 
-    # Run the split and text extraction function
+    # Use command-line arguments for the file paths
+    input_pdf_path = sys.argv[1]
+    output_pdf_dir = sys.argv[2]
+    output_txt_dir = sys.argv[3]
+
+    # Run the PDF splitting and text extraction process
     try:
         split_pdf_and_save(input_pdf_path, output_pdf_dir, output_txt_dir)
         print("PDF and text extraction completed successfully.")
     except Exception as e:
         print(f"An error occurred: {e}")
+        sys.exit(1)
