@@ -2,6 +2,13 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  FileText,
+  Upload,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+} from "lucide-react";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -23,7 +30,6 @@ export default function Home() {
       formData.append("file", file);
 
       try {
-        // 파일 업로드
         const uploadResponse = await fetch("/api/upload", {
           method: "POST",
           body: formData,
@@ -35,7 +41,6 @@ export default function Home() {
 
         const uploadResult = await uploadResponse.json();
 
-        // 업로드한 파일을 기반으로 Groq API 호출
         const groqResponse = await fetch("/api/process-groq", {
           method: "POST",
           headers: {
@@ -51,10 +56,8 @@ export default function Home() {
 
         const groqResult = await groqResponse.json();
 
-        // Groq 분석 결과에서 JSON 파일 경로 추출
         if (groqResult.results && groqResult.results.length > 0) {
-          const jsonFilePath = groqResult.results[0].filePath; // JSON 파일 경로 추출
-          // JSON 파일 경로를 분석 페이지로 전달
+          const jsonFilePath = groqResult.results[0].filePath;
           router.push(`/analysis?jsonPath=${encodeURIComponent(jsonFilePath)}`);
         } else {
           throw new Error("No pages were successfully processed");
@@ -72,21 +75,122 @@ export default function Home() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen">
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col items-center space-y-4"
-      >
-        <h1 className="text-2xl font-bold">Upload a PDF</h1>
-        <input type="file" accept=".pdf" onChange={handleFileChange} />
-        <button
-          type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-          disabled={isLoading}
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-white py-12 sm:py-16 lg:py-20">
+      <div className="w-full max-w-2xl px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl sm:text-5xl font-bold text-gray-800 mb-4">
+            Contract Analyzer
+          </h1>
+          <p className="text-xl text-gray-600 mb-8">
+            Upload your business contract and we'll highlight the key clauses
+            you should pay attention to.
+          </p>
+        </div>
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white shadow-xl rounded-lg p-8 mb-8"
         >
-          {isLoading ? "Processing..." : "Upload and Proceed"}
-        </button>
-      </form>
+          <div className="mb-6">
+            <label
+              htmlFor="file-upload"
+              className="flex flex-col items-center justify-center w-full h-72 border-3 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition duration-300 ease-in-out"
+            >
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <FileText className="w-16 h-16 text-gray-400 mb-4" />
+                <p className="mb-2 text-lg text-gray-500">
+                  <span className="font-semibold">Click to upload</span> or drag
+                  and drop
+                </p>
+                <p className="text-sm text-gray-500">PDF (MAX. 10MB)</p>
+              </div>
+              <input
+                id="file-upload"
+                type="file"
+                accept=".pdf"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </label>
+          </div>
+          {file && (
+            <p className="text-sm text-gray-600 mb-4">
+              Selected file: {file.name}
+            </p>
+          )}
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white px-6 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-300 ease-in-out flex items-center justify-center"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              <>
+                <Upload className="w-5 h-5 mr-2" />
+                Analyze Contract
+              </>
+            )}
+          </button>
+        </form>
+        <div className="bg-white shadow-lg rounded-xl p-8 mt-12">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+            How It Works
+          </h2>
+          <div className="space-y-6">
+            <div className="flex items-start">
+              <AlertTriangle className="w-8 h-8 text-yellow-500 mr-4 flex-shrink-0" />
+              <p className="text-lg text-gray-600">
+                Our AI analyzes your business contract to identify potentially
+                problematic clauses or terms that require careful review.
+              </p>
+            </div>
+            <div className="flex items-start">
+              <CheckCircle className="w-8 h-8 text-green-500 mr-4 flex-shrink-0" />
+              <p className="text-lg text-gray-600">
+                We highlight key areas of concern, helping you focus on the most
+                critical parts of the agreement.
+              </p>
+            </div>
+            <div className="flex items-start">
+              <Clock className="w-8 h-8 text-blue-500 mr-4 flex-shrink-0" />
+              <p className="text-lg text-gray-600">
+                Save time and reduce risk by quickly identifying clauses that
+                may need negotiation or legal review.
+              </p>
+            </div>
+          </div>
+          <div className="mt-8 text-base text-gray-500">
+            <p>
+              Our goal is to empower you with insights into your business
+              contracts, helping you make informed decisions and protect your
+              interests. While our analysis is thorough, we always recommend
+              consulting with a legal professional for final review and advice.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
