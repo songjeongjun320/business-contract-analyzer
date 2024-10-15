@@ -1,0 +1,38 @@
+{
+  "Insurance": [
+    "Prior to the commencement of the Work, Subcontractor shall, at its sole cost secure/procure and maintain insurance with coverages and in amounts not less than the greater of those required by the Subcontract Documents, Prime Contract, governing law or as specified herein.",
+    "Worker's Compensation - In the state or states which the work is to be performed, and including Employer's Liability insurance with limits not less $1,000,000 each accident, $1,000,000 each employee, $1,000,000 policy limit.",
+    "Commercial General Liability - For bodily injury, personal injury, and property damage on an occurrence form (ISO Form CG 0001 or equivalent) and shall include, but not limited to, coverage for premises-operations, elevators, independent contractors, broad form property damage, XCU hazards (explosion, collapse and underground), contractual liability, riggers liability when applicable, and products and completed operations with limits not less than $1,000,000, $2,000,000, $2,000,000.",
+    "Automobile Liability - For bodily injury and property damage arising from the ownership, maintenance, or use of owned, hired, and non-owned vehicles, including - contractual liability coverage, with a limit no less than $1,000,000 per accident.",
+    "Umbrella/Excess Liability - Such policy shall be follow form excess coverage over commercial General Liability, Automobile Liability, and Employer's Liability providing equivalent coverage terms and conditions, and with limits not less than the following amounts:",
+    "Property/Contractor's Equipment - For damage or loss to owned, leased or rented property, machinery, materials, equipment and tools ('Property') under Subcontractor's care, custody or control, covered on an all-risk replacement cost basis including debris removal."
+  ],
+  "Liability": [
+    "Worker's Compensation - In the state or states which the work is to be performed, and including Employer's Liability insurance with limits not less $1,000,000 each accident, $1,000,000 each employee, $1,000,000 policy limit.",
+    "Commercial General Liability - For bodily injury, personal injury, and property damage on an occurrence form (ISO Form CG 0001 or equivalent) and shall include, but not limited to, coverage for premises-operations, elevators, independent contractors, broad form property damage, XCU hazards (explosion, collapse and underground), contractual liability, riggers liability when applicable, and products and completed operations with limits not less than $1,000,000, $2,000,000, $2,000,000.",
+    "Automobile Liability - For bodily injury and property damage arising from the ownership, maintenance, or use of owned, hired, and non-owned vehicles, including - contractual liability coverage, with a limit no less than $1,000,000 per accident.",
+    "Umbrella/Excess Liability - Such policy shall be follow form excess coverage over commercial General Liability, Automobile Liability, and Employer's Liability providing equivalent coverage terms and conditions, and with limits not less than the following amounts:"
+  ],
+  "Indeminification": [],
+  "Default ": [],
+  "Penalties": [],
+  "Damages": [
+    "TIME IS OF THE ESSENCE for all parties, and it is understood that the General Contractor and the Owner will sustain monetary damages if the project is delayed."
+  ],
+  "Termination for cause": [],
+  "Termination for convenience": [],
+  "Sole discretion": [
+    "The Subcontract shall be performed in accordance with the work schedule, as adjusted by the General Contractor.",
+    "General Contractor shall supply Subcontractor with bond forms if bond is requested.",
+    "General Contractor, at his sole discretion, to terminate this Agreement without penalty."
+  ],
+  "Dispute": [],
+  "Clean up": [],
+  "Terms of payment": [
+    "The Subcontract Sum includes all applicable Federal, State, County, Municipal and Local taxes."
+  ],
+  "Indemnification": [],
+  "Default": [
+    "Failure to furnish compliant bonds within this time frame will be considered a condition of default and allow General Contractor, at his sole discretion, to terminate this Agreement without penalty."
+  ]
+}

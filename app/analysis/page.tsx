@@ -2,16 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import jsPDF from "jspdf"; // jsPDF 라이브러리 추가
-import autoTable from "jspdf-autotable"; // 표를 자동으로 만들어주는 플러그인
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
-// JSON 파일 형태의 결과 데이터 타입
-interface AnalysisResult {
-  "low cost & high protection": string[];
-  "high cost & high protection": string[];
-  "low cost & low protection": string[];
-  "high cost & low protection": string[];
-}
+// JSON 파일 형태의 결과 데이터 타입은 제거되었습니다.
 
 interface SectionData {
   title: string;
@@ -22,19 +16,23 @@ interface SectionData {
 }
 
 export default function AnalysisPage() {
-  const [result, setResult] = useState<AnalysisResult | null>(null); // 서버에서 데이터를 받아올 변수
+  const [result, setResult] = useState<{
+    high: string[];
+    medium: string[];
+    low: string[];
+  } | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true); // Loading 상태 관리
+  const [loading, setLoading] = useState(true);
 
   // 서버에서 JSON 데이터를 가져오는 함수
   useEffect(() => {
     const fetchAnalysisData = async () => {
       try {
-        const response = await fetch("/api/get-analysis-result");
+        const response = await fetch("/api/get-final-result"); // Fetch from the final_results.json
         if (!response.ok) {
           throw new Error("Failed to fetch analysis data");
         }
-        const data: AnalysisResult = await response.json();
+        const data = await response.json();
         setResult(data); // 서버에서 가져온 데이터로 상태를 설정
       } catch (error) {
         console.error("Error fetching analysis data:", error);
@@ -68,36 +66,28 @@ export default function AnalysisPage() {
   // 각 섹션에 해당하는 데이터를 준비합니다.
   const sections: SectionData[] = [
     {
-      title: "Low Cost, High Protection",
+      title: "Critical Attention Required",
       description:
-        "These are favorable conditions that offer good protection at a low cost.",
-      items: result["low cost & high protection"],
-      bgColor: "bg-green-100",
-      textColor: "text-green-800",
+        "These clauses pose a high risk or significant disadvantage. Careful consideration and potential negotiation are strongly recommended.",
+      items: result.high,
+      bgColor: "bg-red-100",
+      textColor: "text-red-800",
     },
     {
-      title: "High Cost, High Protection",
+      title: "Moderate Attention Advised",
       description:
-        "These conditions offer good protection but at a higher cost. Consider if the protection is worth the expense.",
-      items: result["high cost & high protection"],
+        "These clauses carry a moderate level of risk or complexity. Evaluate carefully to determine if they align with your needs and expectations.",
+      items: result.medium,
       bgColor: "bg-yellow-100",
       textColor: "text-yellow-800",
     },
     {
-      title: "Low Cost, Low Protection",
+      title: "Low Risk, High Protection",
       description:
-        "These conditions are inexpensive but offer limited protection. Evaluate if the lack of protection is acceptable.",
-      items: result["low cost & low protection"],
-      bgColor: "bg-blue-100",
-      textColor: "text-blue-800",
-    },
-    {
-      title: "High Cost, Low Protection",
-      description:
-        "These are unfavorable conditions with high cost and low protection. Consider negotiating or avoiding these terms.",
-      items: result["high cost & low protection"],
-      bgColor: "bg-red-100",
-      textColor: "text-red-800",
+        "These clauses are generally favorable and pose low risk. They offer good protection with minimal downsides.",
+      items: result.low,
+      bgColor: "bg-green-100",
+      textColor: "text-green-800",
     },
   ];
 
@@ -138,30 +128,46 @@ export default function AnalysisPage() {
           Download PDF
         </button>
       </div>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {sections.map((section, index) => (
-          <div
-            key={index}
-            className={`p-6 rounded-lg shadow-md ${section.bgColor} cursor-pointer transition-all duration-300 hover:shadow-lg`}
-            onClick={() => setExpandedSection(section.title)}
-          >
-            <h2 className={`mb-3 text-xl font-semibold ${section.textColor}`}>
-              {section.title}
-            </h2>
-            <p className="mb-2 text-sm text-gray-600">{section.description}</p>
-            <ul className="space-y-2">
-              {section.items.slice(0, 2).map((item, itemIndex) => (
-                <li key={itemIndex} className="flex items-start">
-                  <span className={`mr-2 text-lg ${section.textColor}`}>•</span>
-                  <span className="text-gray-700">{item}</span>
-                </li>
-              ))}
-            </ul>
-            {section.items.length > 2 && (
-              <p className="mt-2 text-sm text-gray-500">Click to see more...</p>
-            )}
-          </div>
-        ))}
+      <div className="flex flex-col gap-6">
+        {sections
+          .sort((a, b) => {
+            // Define the order type to allow string indexing
+            const order: { [key: string]: number } = {
+              "Critical Attention Required": 1,
+              "Moderate Attention Advised": 2,
+              "Low Risk, High Protection": 3,
+            };
+            return order[a.title] - order[b.title];
+          })
+          .map((section, index) => (
+            <div
+              key={index}
+              className={`p-6 rounded-lg shadow-md ${section.bgColor} cursor-pointer transition-all duration-300 hover:shadow-lg`}
+              onClick={() => setExpandedSection(section.title)}
+            >
+              <h2 className={`mb-3 text-xl font-semibold ${section.textColor}`}>
+                {section.title}
+              </h2>
+              <p className="mb-2 text-sm text-gray-600">
+                {section.description}
+              </p>
+              <ul className="space-y-2">
+                {section.items.slice(0, 2).map((item, itemIndex) => (
+                  <li key={itemIndex} className="flex items-start">
+                    <span className={`mr-2 text-lg ${section.textColor}`}>
+                      •
+                    </span>
+                    <span className="text-gray-700">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              {section.items.length > 2 && (
+                <p className="mt-2 text-sm text-gray-500">
+                  Click to see more...
+                </p>
+              )}
+            </div>
+          ))}
       </div>
 
       {expandedSection && (
