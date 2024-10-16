@@ -5,8 +5,6 @@ import path from "path";
 import { exec } from "child_process"; // exec을 사용하여 Python command 실행
 import { promisify } from "util";
 
-const execAsync = promisify(exec); // exec을 promise로 변환하여 비동기로 처리
-
 // Helper function to execute the Python script as a promise
 function runPythonScript(command: string) {
   return new Promise((resolve, reject) => {
@@ -23,15 +21,22 @@ function runPythonScript(command: string) {
   });
 }
 
-// Helper function to convert objects to a string representation
-function objectToString(obj: Record<string, string>): string {
-  return Object.entries(obj)
-    .map(([key, value]) => `${key}: ${value}`)
-    .join(", ");
-}
+async function getAvailableDirectory(baseDirectory: string): Promise<string> {
+  let currentDir = baseDirectory;
+  let index = 1;
 
-// Directory paths
-const RESULT_DIRECTORY = path.join(process.cwd(), "app/db/result");
+  while (true) {
+    try {
+      await fs.access(currentDir);
+      // If the directory exists, we create a new name by appending a number
+      currentDir = `${baseDirectory}${index}`;
+      index += 1;
+    } catch (error) {
+      // If the directory doesn't exist, we return it
+      return currentDir;
+    }
+  }
+}
 
 export async function POST(request: Request) {
   console.log("POST request received"); // Debugging log
@@ -76,6 +81,9 @@ export async function POST(request: Request) {
     });
 
     console.log("Base data initialized:", baseData); // Debugging log
+
+    const base_directory = path.join(process.cwd(), "app/db/result");
+    const RESULT_DIRECTORY = await getAvailableDirectory(base_directory);
 
     // Ensure result directory exists
     try {

@@ -177,9 +177,10 @@ export default function AnalysisPage() {
           onClick={() => setExpandedSection(null)}
         >
           <div
-            className={`w-full max-w-2xl p-6 rounded-lg shadow-xl bg-white relative max-h-[80vh] overflow-y-auto ${
+            className={`w-full max-w-2xl p-6 rounded-lg shadow-xl bg-white relative overflow-y-auto ${
               sections.find((s) => s.title === expandedSection)?.bgColor
             }`}
+            style={{ maxHeight: "90vh" }} // 팝업 창의 최대 높이를 90vh로 설정하여 더 많은 공간을 차지하도록 수정합니다.
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
