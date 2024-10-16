@@ -4,7 +4,6 @@ import fs from "fs/promises";
 import path from "path";
 import { exec } from "child_process"; // exec을 사용하여 Python command 실행
 import { promisify } from "util";
-import { processFinalResults } from "./processFinalResults"; // Import the final result processor
 
 const execAsync = promisify(exec); // exec을 promise로 변환하여 비동기로 처리
 
