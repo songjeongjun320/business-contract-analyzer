@@ -2,18 +2,40 @@ import { NextResponse } from "next/server";
 import { Groq } from "groq-sdk";
 import fs from "fs/promises";
 import path from "path";
-import { execFile } from "child_process"; // Fixed the quote mismatch
+import { exec } from "child_process"; // exec을 사용하여 Python command 실행
+import { promisify } from "util";
 import { processFinalResults } from "./processFinalResults"; // Import the final result processor
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+const execAsync = promisify(exec); // exec을 promise로 변환하여 비동기로 처리
+
+// Helper function to execute the Python script as a promise
+function runPythonScript(command: string) {
+  return new Promise((resolve, reject) => {
+    console.log(`Executing command: ${command}`); // Log the command being executed
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error executing script: ${stderr}`);
+        reject(stderr);
+      } else {
+        console.log(`Script output: ${stdout}`);
+        resolve(stdout);
+      }
+    });
+  });
+}
+
+// Helper function to convert objects to a string representation
+function objectToString(obj: Record<string, string>): string {
+  return Object.entries(obj)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(", ");
+}
 
 // Directory paths
 const RESULT_DIRECTORY = path.join(process.cwd(), "app/db/result");
 
 export async function POST(request: Request) {
-  console.log("POST request received");
+  console.log("POST request received"); // Debugging log
   try {
     const splitDir = path.join(process.cwd(), "app/db/split_txt_here");
     console.log("Split directory set to:", splitDir);
@@ -22,26 +44,23 @@ export async function POST(request: Request) {
     const files = await fs.readdir(splitDir);
     const textFiles = files.filter((file) => file.endsWith(".txt"));
 
-    // Define the path to the Python executable
-    const pythonExecutable =
-      "C:/Users/frank/AppData/Local/Programs/Python/Python312/python.exe";
+    console.log("Text files found:", textFiles); // Debugging log
 
-    // Define the path to the Python script
-    const pythonScriptPath =
-      "C:/Users/frank/Desktop/toxic_clauses_detector_in_business_contract/app/api/process-groq/model_create.py";
+    // Define the Python command to run
+    const command = `"C:/Users/frank/Desktop/toxic_clauses_detector_in_business_contract/.venv/Scripts/python.exe" C:/Users/frank/Desktop/toxic_clauses_detector_in_business_contract/app/api/process-groq/model_create.py`;
 
-    // Execute Python script to fetch toxicity data
-    const { stdout, stderr } = await execFile(pythonExecutable, [
-      pythonScriptPath,
-    ]);
+    console.log("Executing Python script..."); // Debugging log
 
-    if (stderr) {
-      console.error("Error running Python script:", stderr);
-      throw new Error(String(stderr)); // Convert stderr to string
-    }
+    // Execute the Python command using the helper function
+    const stdout = await runPythonScript(command); // Use the helper function here
+
+    // Log the script output
+    console.log("Python script executed successfully, output:", stdout); // Debugging log
 
     // Parse the output from the Python script
-    const toxicityResult = JSON.parse(String(stdout));
+    const toxicityResult = JSON.parse(String(stdout).trim());
+
+    console.log("Parsed toxicityResult:", toxicityResult); // Debugging log
 
     // Define toxicity categories
     const allItemsList = toxicityResult.all_items;
@@ -49,11 +68,15 @@ export async function POST(request: Request) {
     const mediumItems = toxicityResult.medium_toxicity_items;
     const lowItems = toxicityResult.low_toxicity_items;
 
+    console.log("Toxicity items categorized"); // Debugging log
+
     // Initialize baseData
     let baseData: Record<string, string[]> = {};
     allItemsList.forEach((item: string) => {
       baseData[item] = [];
     });
+
+    console.log("Base data initialized:", baseData); // Debugging log
 
     // Ensure result directory exists
     try {
@@ -64,19 +87,34 @@ export async function POST(request: Request) {
 
     // Path for base data
     const baseDataFilePath = path.join(RESULT_DIRECTORY, "base_data.json");
+    const finalResultFilePath = path.join(RESULT_DIRECTORY, "all_results.json");
 
     // Create base_data.json if it doesn't exist
     try {
       await fs.access(baseDataFilePath);
     } catch {
       await fs.writeFile(baseDataFilePath, JSON.stringify(baseData, null, 2));
+      await fs.writeFile(
+        finalResultFilePath,
+        JSON.stringify(baseData, null, 2)
+      );
     }
+
+    console.log("Base data file checked and created if not existing"); // Debugging log
+
+    // =============================================================================================
+    // AI API Start here
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+    });
 
     // Process each text file
     const results = await Promise.all(
       textFiles.map(async (fileName) => {
         const filePath = path.join(splitDir, fileName);
         const text = await fs.readFile(filePath, "utf-8");
+
+        console.log(`Processing file: ${fileName}`); // Debugging log
 
         try {
           console.time(`Groq API request for ${fileName}`);
@@ -86,13 +124,18 @@ export async function POST(request: Request) {
             messages: [
               {
                 role: "system",
-                content: `We have a JSON file called base_data.json which contains various keys that represent contract clause items: ${JSON.stringify(
+                content: `This is a base_data.json file containing keys that represent clauses in a business contract: ${JSON.stringify(
                   baseData
-                )}. Your task is to analyze the text I will provide and categorize the relevant clauses into the appropriate keys in the JSON structure.`,
+                )}. Analyze the provided text and categorize the clauses according to these keys. Follow the rules below:
+            
+                1. Do not create new keys.
+                2. Only use the existing keys from base_data.json.
+                3. Respond with a JSON format that matches the exact structure of base_data.json.
+                4. Extract relevant sentences from the provided text and add them as values in string format under the appropriate key in base_data.json.`,
               },
               {
                 role: "user",
-                content: `Find the clauses that correspond to each key in the provided JSON from the following text. Do not include any explanations. Only respond in a valid .json format that matches the structure of base_data.json.\n\n${text}`,
+                content: `Ensure the response format matches base_data.json. No comments, Just .json format\n\n${text}`,
               },
             ],
             model: "llama3-8b-8192",
@@ -105,15 +148,25 @@ export async function POST(request: Request) {
             response.choices?.[0]?.message?.content?.trim() || "";
 
           // API 결과를 콘솔에 출력
-          console.log(jsonContent);
+          console.log(
+            `Groq response start ====================================================`
+          );
+          console.log(`${fileName}:`, jsonContent);
+          console.log(
+            `Groq response end =======================================================`
+          );
 
-          if (!jsonContent.endsWith("}")) {
-            jsonContent += "}";
+          // Extract only the JSON part (starting from first '{' to last '}')
+          if (jsonContent.includes("{") && jsonContent.includes("}")) {
+            const startIndex = jsonContent.indexOf("{");
+            const endIndex = jsonContent.lastIndexOf("}");
+            jsonContent = jsonContent.substring(startIndex, endIndex + 1);
           }
 
           let categorizedClauses;
           try {
             categorizedClauses = JSON.parse(jsonContent);
+            console.log("Parsed categorized clauses:", categorizedClauses); // Debugging log
           } catch (error) {
             console.error(
               `Error parsing Groq response for ${fileName}:`,
@@ -127,18 +180,11 @@ export async function POST(request: Request) {
           const resultFilePath = path.join(RESULT_DIRECTORY, resultFileName);
 
           let existingData: Record<string, any[]> = {}; // Define existingData with a specific type
-          try {
-            // Read existing file if it exists
-            const existingFileContent = await fs.readFile(
-              resultFilePath,
-              "utf-8"
-            );
-            existingData = JSON.parse(existingFileContent);
-          } catch (error) {
-            // If the file doesn't exist, we initialize existingData as an empty object
-            console.log("No existing JSON file, creating a new one.");
-            existingData = {}; // Make sure existingData is initialized as an empty object
-          }
+          const existingFileContent = await fs.readFile(
+            resultFilePath,
+            "utf-8"
+          );
+          existingData = JSON.parse(existingFileContent);
 
           // Append new results to existing data
           Object.keys(categorizedClauses).forEach((key) => {
@@ -183,8 +229,48 @@ export async function POST(request: Request) {
 
     // Trigger final result processing (call processFinalResults)
     console.log("Triggering final result processing...");
-    await processFinalResults(highItems, mediumItems, lowItems);
-    console.log("Final results processing completed.");
+
+    // 새로운 로직: all_results.json에서 각 키를 high, medium, low로 분류하여 최종 결과에 반영합니다.
+    const allResultsPath = path.join(RESULT_DIRECTORY, "all_results.json");
+    let finalHigh: string[] = [];
+    let finalMedium: string[] = [];
+    let finalLow: string[] = [];
+
+    try {
+      const allResultsContent = await fs.readFile(allResultsPath, "utf-8");
+      const allResults = JSON.parse(allResultsContent);
+
+      // 키 값을 기준으로 각 문장을 분류하여 high, medium, low 리스트에 추가
+      Object.keys(allResults).forEach((key) => {
+        const values = allResults[key];
+        if (highItems.includes(key)) {
+          finalHigh.push(...values);
+        } else if (mediumItems.includes(key)) {
+          finalMedium.push(...values);
+        } else if (lowItems.includes(key)) {
+          finalLow.push(...values);
+        }
+      });
+
+      // final_results.json 파일을 생성 및 저장
+      const finalResults = {
+        high: finalHigh,
+        medium: finalMedium,
+        low: finalLow,
+      };
+
+      const finalResultsPath = path.join(
+        RESULT_DIRECTORY,
+        "final_results.json"
+      );
+      await fs.writeFile(
+        finalResultsPath,
+        JSON.stringify(finalResults, null, 2)
+      );
+      console.log("Final results saved to final_results.json");
+    } catch (error) {
+      console.error("Error reading or writing JSON files:", error);
+    }
 
     return NextResponse.json({ results: successfulResults, errors });
   } catch (error) {

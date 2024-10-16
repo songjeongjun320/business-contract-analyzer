@@ -1,36 +1,38 @@
 import fs from "fs/promises";
 import path from "path";
 
+// Define the result directory path
 const RESULT_DIRECTORY = path.join(process.cwd(), "app/db/result");
 
 export async function processFinalResults(
-  highItems: string[], 
-  mediumItems: string[], 
+  highItems: string[],
+  mediumItems: string[],
   lowItems: string[]
 ) {
   try {
-    // all_results.json 경로 설정
+    // Define paths for all_results.json and final_results.json
     const allResultsFilePath = path.join(RESULT_DIRECTORY, "all_results.json");
-    // final_results.json 경로 설정
     const finalResultsFilePath = path.join(
       RESULT_DIRECTORY,
       "final_results.json"
     );
 
-    // all_results.json 파일 읽기
+    // Read the all_results.json file
     const allResultsContent = await fs.readFile(allResultsFilePath, "utf-8");
-    const allResults = JSON.parse(allResultsContent) || {};
+    const allResults = JSON.parse(allResultsContent) || {}; // Parse the content or use an empty object if file is empty
 
-    // 최종 결과를 담을 구조 초기화
+    // Initialize structure to hold categorized results
     const finalResults: Record<string, string[]> = {
-      high: [],
-      medium: [],
-      low: [],
+      high: [], // High-risk clauses
+      medium: [], // Medium-risk clauses
+      low: [], // Low-risk clauses
     };
 
-    // all_results에 담긴 데이터를 high, medium, low로 분류
+    // Categorize data from all_results.json into high, medium, and low based on provided keys
     Object.entries(allResults).forEach(([key, value]) => {
-      const valuesArray = Array.isArray(value) ? (value as string[]) : [];
+      const valuesArray = Array.isArray(value) ? (value as string[]) : []; // Ensure the value is an array
+
+      // Check which category the key belongs to and add it to the appropriate list
       if (highItems.includes(key)) {
         finalResults.high.push(...valuesArray);
       } else if (mediumItems.includes(key)) {
@@ -40,14 +42,14 @@ export async function processFinalResults(
       }
     });
 
-    // 최종 결과를 final_results.json 파일로 저장
+    // Write the final categorized results into final_results.json
     await fs.writeFile(
       finalResultsFilePath,
-      JSON.stringify(finalResults, null, 2)
+      JSON.stringify(finalResults, null, 2) // Format the output with indentation
     );
-    console.log("final_results.json 생성 완료");
+    console.log("final_results.json has been successfully created!");
   } catch (error) {
-    // 에러 발생 시 로그 출력
-    console.error("최종 결과 처리 중 에러 발생:", error);
+    // Log an error if something goes wrong during the process
+    console.error("Error during final results processing:", error);
   }
 }
