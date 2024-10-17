@@ -145,7 +145,7 @@ export async function POST(request: Request) {
                 content: `Ensure the response format matches base_data.json. No comments, Just .json format\n\n${text}`,
               },
             ],
-            model: "llama3-8b-8192",
+            model: "llama3-70b-8192",
           });
 
           console.timeEnd(`Groq API request for ${fileName}`);

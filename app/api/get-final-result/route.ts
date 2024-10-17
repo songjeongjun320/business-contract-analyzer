@@ -26,6 +26,23 @@ async function getLatestResultDirectory(baseDir: string) {
   }
 }
 
+// 빈 값을 제거하는 함수
+function removeEmptyValues(jsonData: any) {
+  const cleanedData: any = {};
+
+  // 각 key에 대해 value가 빈 문자열이 아닌지 확인하여 필터링
+  for (const key in jsonData) {
+    if (Array.isArray(jsonData[key])) {
+      // 배열의 경우 빈 값 ""이 있는 요소들을 제거
+      cleanedData[key] = jsonData[key].filter((value: string) => value !== "");
+    } else {
+      cleanedData[key] = jsonData[key];
+    }
+  }
+
+  return cleanedData;
+}
+
 export async function GET() {
   const baseDir = path.join(process.cwd(), "app/db");
 
@@ -49,6 +66,14 @@ export async function GET() {
     const jsonData = await fs.readFile(jsonFilePath, "utf-8");
     const parsedData = JSON.parse(jsonData);
     console.log("Parsed Data:", parsedData);
+
+    const cleanedData = removeEmptyValues(parsedData);
+    console.log("Cleaned Data:", cleanedData);
+    await fs.writeFile(
+      jsonFilePath,
+      JSON.stringify(cleanedData, null, 2),
+      "utf-8"
+    );
 
     return NextResponse.json(parsedData);
   } catch (error) {
