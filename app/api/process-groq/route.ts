@@ -138,7 +138,8 @@ export async function POST(request: Request) {
                 1. Do not create new keys.
                 2. Only use the existing keys from base_data.json.
                 3. Respond with a JSON format that matches the exact structure of base_data.json.
-                4. Extract relevant sentences from the provided text and add them as values in string format under the appropriate key in base_data.json.`,
+                4. Extract relevant sentences from the provided text and add them as values in string format under the appropriate key in base_data.json.
+                5. If the relevant sentence is too long, summarize it to 1 or 2 sentences.`,
               },
               {
                 role: "user",
