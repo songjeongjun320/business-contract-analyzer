@@ -1,95 +1,140 @@
-import { NextResponse } from "next/server";
-import { exec } from "child_process";
-import { promises as fs } from "fs";
+// app/api/upload/route.ts
+
+import type { NextApiRequest, NextApiResponse } from "next";
+import axios from "axios";
+import { createRouter, expressWrapper } from "next-connect";
+import formidable, { File as FormidableFile, Fields, Files } from "formidable";
+import fs from "fs";
+import FormData from "form-data";
 import path from "path";
 import os from "os";
 
-// 임시 디렉토리 경로 설정
-const TEMP_DIRECTORY =
-  process.env.NODE_ENV === "production" ? "/tmp" : os.tmpdir();
+// Flask 서버의 `/process-pdf` 엔드포인트 URL
+const FLASK_PROCESS_PDF_URL =
+  process.env.NEXT_PUBLIC_FLASK_PROCESS_PDF_URL ||
+  "http://localhost:5000/process-pdf";
 
-// 'db' 디렉토리 경로 설정
-const DB_DIRECTORY = path.join(process.cwd(), "app", "db");
+// Flask 서버의 기본 URL
+const FLASK_BASE_URL =
+  process.env.NEXT_PUBLIC_FLASK_BASE_URL || "http://localhost:5000";
 
-// Python 스크립트 실행 함수
-function runPythonScript(command: string) {
+// API 키
+const API_KEY = process.env.API_KEY || "your_default_api_key";
+
+// Formidable 설정: 파일 파싱 함수
+const parseForm = (
+  req: NextApiRequest
+): Promise<{ fields: Fields; files: Files }> => {
+  const form = formidable({ multiples: false, keepExtensions: true });
+
   return new Promise((resolve, reject) => {
-    console.log(`Executing command: ${command}`);
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing script: ${stderr}`);
-        reject(stderr);
-      } else {
-        console.log(`Script output: ${stdout}`);
-        resolve(stdout);
-      }
+    form.parse(req, (err, fields, files) => {
+      if (err) reject(err);
+      else resolve({ fields, files });
     });
+  });
+};
+
+// 파일 다운로드 및 저장 함수 정의
+async function downloadAndSaveFile(
+  url: string,
+  savePath: string,
+  apiKey: string
+): Promise<void> {
+  const writer = fs.createWriteStream(savePath);
+  const response = await axios.get(url, {
+    responseType: "stream",
+    headers: { "x-api-key": apiKey },
+  });
+  response.data.pipe(writer);
+  return new Promise((resolve, reject) => {
+    writer.on("finish", resolve);
+    writer.on("error", reject);
   });
 }
 
-export async function POST(request: Request) {
+// `next-connect`를 사용해 API 핸들러 생성
+const handler = createRouter<NextApiRequest, NextApiResponse>();
+
+handler.post(async (req, res) => {
   try {
-    console.log("Received POST request to split PDF");
+    const { fields, files } = await parseForm(req);
+    const uploadedFile = files.file as FormidableFile | FormidableFile[];
 
-    const formData = await request.formData();
-    const fileName = formData.get("fileName") as string;
-    const file = formData.get("file") as Blob;
+    const file = Array.isArray(uploadedFile) ? uploadedFile[0] : uploadedFile;
 
-    if (!fileName || !file) {
-      console.error("No file or file name provided in the form data");
-      return NextResponse.json({ error: "No file specified" }, { status: 400 });
+    if (!file) {
+      return res.status(400).json({ error: "No file uploaded" });
     }
 
-    console.log(`File name received: ${fileName}`);
+    const fileName = file.originalFilename || "uploaded_file.pdf";
 
-    // 임시 파일 경로 설정
-    const tempFilePath = path.join(TEMP_DIRECTORY, fileName);
-    console.log(`Temporary file path: ${tempFilePath}`);
+    const formData = new FormData();
+    formData.append("file", fs.createReadStream(file.filepath), fileName);
+    formData.append("fileName", fileName);
 
-    // 임시 파일 저장
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    await fs.writeFile(tempFilePath, fileBuffer);
-    console.log(`File saved to temporary location: ${tempFilePath}`);
-
-    // 출력 디렉토리 설정
-    const outputDir = path.join(TEMP_DIRECTORY, "split_pdf_here");
-    const output_txtDir = path.join(TEMP_DIRECTORY, "split_txt_here");
-
-    await fs.mkdir(outputDir, { recursive: true });
-    await fs.mkdir(output_txtDir, { recursive: true });
-
-    console.log(`Output directory for PDFs: ${outputDir}`);
-    console.log(`Output directory for TXTs: ${output_txtDir}`);
-
-    // Python 명령어 준비 (환경에 따라 Python 경로 조정 필요)
-    const pythonPath =
-      process.env.NODE_ENV === "production"
-        ? "python3"
-        : "C:/Users/frank/AppData/Local/Programs/Python/Python312/python.exe";
-    const scriptPath = path.join(
-      process.cwd(),
-      "app",
-      "api",
-      "upload",
-      "pdf_processor.py"
-    );
-    const command = `"${pythonPath}" "${scriptPath}" "${tempFilePath}" "${outputDir}" "${output_txtDir}"`;
-
-    console.log(`Prepared command: ${command}`);
-
-    // Python 스크립트 실행
-    const result = await runPythonScript(command);
-
-    // 임시 파일 삭제
-    await fs.unlink(tempFilePath);
-    console.log(`Temporary file deleted: ${tempFilePath}`);
-
-    return NextResponse.json({
-      message: "PDF split successfully",
-      files: result,
+    const response = await axios.post(FLASK_PROCESS_PDF_URL, formData, {
+      headers: { ...formData.getHeaders(), "x-api-key": API_KEY },
+      timeout: 60000,
     });
-  } catch (error) {
-    console.error("Error splitting file:", error);
-    return NextResponse.json({ error: "Failed to split PDF" }, { status: 500 });
+
+    const data = response.data;
+    const baseTempDir = path.join(os.tmpdir(), "business-contract-analyzer");
+    const resultDir = path.join(baseTempDir, "result");
+    const splitPdfsDir = path.join(resultDir, "split_pdfs");
+    const splitTxtsDir = path.join(resultDir, "split_txts");
+
+    fs.mkdirSync(splitPdfsDir, { recursive: true });
+    fs.mkdirSync(splitTxtsDir, { recursive: true });
+
+    const {
+      processed_pdfs,
+      processed_txts,
+      pdf_download_urls,
+      txt_download_urls,
+    } = data;
+
+    for (const pdfFileName of processed_pdfs) {
+      const pdfUrl = pdf_download_urls[pdfFileName];
+      const savePath = path.join(splitPdfsDir, pdfFileName);
+      await downloadAndSaveFile(
+        `${FLASK_BASE_URL}${pdfUrl}`,
+        savePath,
+        API_KEY
+      );
+    }
+
+    for (const txtFileName of processed_txts) {
+      const txtUrl = txt_download_urls[txtFileName];
+      const savePath = path.join(splitTxtsDir, txtFileName);
+      await downloadAndSaveFile(
+        `${FLASK_BASE_URL}${txtUrl}`,
+        savePath,
+        API_KEY
+      );
+    }
+
+    fs.unlinkSync(file.filepath);
+
+    res.status(200).json({
+      message: "PDF split successfully",
+      result_directory: resultDir,
+      split_pdfs: processed_pdfs,
+      split_txts: processed_txts,
+    });
+  } catch (error: any) {
+    console.error("Error uploading file to Flask server:", error.message);
+
+    if (error.response) {
+      res.status(error.response.status).json({
+        error: error.response.data.error || "Error processing PDF on server",
+      });
+    } else if (error.request) {
+      res.status(502).json({ error: "No response from Flask server" });
+    } else {
+      res.status(500).json({ error: "An unexpected error occurred" });
+    }
   }
-}
+});
+
+export default handler;

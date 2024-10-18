@@ -1,4 +1,4 @@
-#!C:\Users\frank\Desktop\toxic_clauses_detector_in_business_contract\.venv\Scripts\python.exe
+#!C:\Users\frank\Desktop\business-contract-analyzer\.venv\Scripts\python.exe
 """A command line tool for extracting text and images from PDF and
 output it to plain text, html, xml or tags."""
 import argparse

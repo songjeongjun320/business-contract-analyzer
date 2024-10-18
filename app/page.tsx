@@ -13,6 +13,8 @@ import {
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<any>(null); // 결과 상태 추가
+  const [error, setError] = useState<string | null>(null); // 에러 상태 추가
   const router = useRouter();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,6 +26,8 @@ export default function Home() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
+    setError(null);
+    setResult(null); // 결과 초기화
 
     if (file && file.type === "application/pdf") {
       const formData = new FormData();
@@ -31,23 +35,31 @@ export default function Home() {
       formData.append("fileName", file.name); // 파일 이름을 추가
 
       try {
+        // 파일 업로드
         const uploadResponse = await fetch("/api/upload", {
           method: "POST",
           body: formData,
         });
 
         if (!uploadResponse.ok) {
-          throw new Error(`Upload failed: ${await uploadResponse.text()}`);
+          const errorData = await uploadResponse.json();
+          throw new Error(
+            `Upload failed: ${
+              errorData.error || errorData.details || "Unknown error"
+            }`
+          );
         }
 
         const uploadResult = await uploadResponse.json();
+        setResult(uploadResult); // 결과 상태에 저장
 
+        // 기존의 /api/process-groq 호출 유지
         const groqResponse = await fetch("/api/process-groq", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ pages: uploadResult.results }),
+          body: JSON.stringify({ pages: uploadResult.results }), // 필요에 따라 수정
         });
 
         if (!groqResponse.ok) {
@@ -65,7 +77,7 @@ export default function Home() {
         }
       } catch (error) {
         console.error("Error:", error);
-        alert(error instanceof Error ? error.message : "An error occurred");
+        setError(error instanceof Error ? error.message : "An error occurred");
       } finally {
         setIsLoading(false);
       }
@@ -155,6 +167,61 @@ export default function Home() {
             )}
           </button>
         </form>
+        {/* 결과 표시 섹션 추가 */}
+        {result && (
+          <div className="bg-white shadow-lg rounded-xl p-8 mt-12">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+              Processing Result
+            </h2>
+            <p className="mb-4 text-gray-700">{result.message}</p>
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold text-gray-800">
+                Processed PDFs:
+              </h3>
+              <ul className="list-disc list-inside text-gray-600">
+                {result.split_pdfs.map((pdf: string, index: number) => (
+                  <li key={index}>
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_FLASK_BASE_URL}/download-pdf/${pdf}`}
+                      download
+                      className="text-blue-600 hover:underline"
+                    >
+                      {pdf}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-800">
+                Processed TXTs:
+              </h3>
+              <ul className="list-disc list-inside text-gray-600">
+                {result.split_txts.map((txt: string, index: number) => (
+                  <li key={index}>
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_FLASK_BASE_URL}/download-txt/${txt}`}
+                      download
+                      className="text-blue-600 hover:underline"
+                    >
+                      {txt}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+        {/* 에러 메시지 표시 섹션 추가 */}
+        {error && (
+          <div
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-6"
+            role="alert"
+          >
+            <strong className="font-bold">Error:</strong>
+            <span className="block sm:inline"> {error}</span>
+          </div>
+        )}
         <div className="bg-white shadow-lg rounded-xl p-8 mt-12">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6">
             How It Works

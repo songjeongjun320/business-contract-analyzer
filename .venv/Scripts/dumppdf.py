@@ -1,4 +1,4 @@
-#!C:\Users\frank\Desktop\toxic_clauses_detector_in_business_contract\.venv\Scripts\python.exe
+#!C:\Users\frank\Desktop\business-contract-analyzer\.venv\Scripts\python.exe
 """Extract pdf structure in XML format"""
 import logging
 import os.path

@@ -40,9 +40,8 @@ lib
 db
 
 # .env key
-.env
+.env.local
 
 # txt, pdf, excel
-*.txt
 *.pdf
 *.xlsx

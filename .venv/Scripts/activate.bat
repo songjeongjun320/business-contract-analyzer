@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=c:\Users\frank\Desktop\toxic_clauses_detector_in_business_contract\.venv
+set VIRTUAL_ENV=C:\Users\frank\Desktop\business-contract-analyzer\.venv
 
 if not defined PROMPT set PROMPT=$P$G
 
