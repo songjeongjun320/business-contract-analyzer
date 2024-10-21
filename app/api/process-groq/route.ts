@@ -312,24 +312,23 @@ export async function POST(request: Request) {
       },
       { status: 500 }
     );
+  } finally {
+    // 처리 후 디렉토리 정리
+    const splitPdfDir = path.join(process.cwd(), "app/db/split_pdf_here");
+    const splitTxtDir = path.join(process.cwd(), "app/db/split_txt_here");
+
+    try {
+      await deleteDirectory(splitPdfDir);
+      console.log(`삭제된 디렉토리: ${splitPdfDir}`);
+    } catch (error) {
+      console.error(`디렉토리 ${splitPdfDir} 삭제 중 오류 발생:`, error);
+    }
+
+    try {
+      await deleteDirectory(splitTxtDir);
+      console.log(`삭제된 디렉토리: ${splitTxtDir}`);
+    } catch (error) {
+      console.error(`디렉토리 ${splitTxtDir} 삭제 중 오류 발생:`, error);
+    }
   }
-  //   finally {
-  //     // 처리 후 디렉토리 정리
-  //     const splitPdfDir = path.join(process.cwd(), "app/db/split_pdf_here");
-  //     const splitTxtDir = path.join(process.cwd(), "app/db/split_txt_here");
-
-  //     try {
-  //       await deleteDirectory(splitPdfDir);
-  //       console.log(`삭제된 디렉토리: ${splitPdfDir}`);
-  //     } catch (error) {
-  //       console.error(`디렉토리 ${splitPdfDir} 삭제 중 오류 발생:`, error);
-  //     }
-
-  //     try {
-  //       await deleteDirectory(splitTxtDir);
-  //       console.log(`삭제된 디렉토리: ${splitTxtDir}`);
-  //     } catch (error) {
-  //       console.error(`디렉토리 ${splitTxtDir} 삭제 중 오류 발생:`, error);
-  //     }
-  //   }
 }
