@@ -39,7 +39,7 @@ def process_toxicity(file_path):
     return json.dumps(result)
 
 def main():
-    file_path = 'C:/Users/frank/Desktop/toxic_clauses_detector_in_business_contract/weights.xlsx'
+    file_path = 'C:/Users/frank/Desktop/business-contract-analyzer/weights.xlsx'
 
     # 파일 경로를 기반으로 독성 수준을 처리하는 함수 호출
     result = process_toxicity(file_path)
