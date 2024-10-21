@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     console.log("Text files found:", textFiles); // Debugging log
 
     // Define the Python command to run
-    const command = `"C:/Users/frank/Desktop/toxic_clauses_detector_in_business_contract/.venv/Scripts/python.exe" C:/Users/frank/Desktop/toxic_clauses_detector_in_business_contract/app/api/process-groq/model_create.py`;
+    const command = `"C:/Users/frank/Desktop/business-contract-analyzer/.venv/Scripts/python.exe" C:/Users/frank/Desktop/business-contract-analyzer/app/api/process-groq/model_create.py`;
 
     console.log("Executing Python script..."); // Debugging log
 
