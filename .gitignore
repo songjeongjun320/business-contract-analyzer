@@ -45,3 +45,7 @@ db
 # txt, pdf, excel
 *.pdf
 *.xlsx
+
+venv
+
+.venv
