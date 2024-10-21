@@ -65,7 +65,7 @@ export async function GET() {
     // JSON 파일을 읽고 그 내용을 반환
     const jsonData = await fs.readFile(jsonFilePath, "utf-8");
     const parsedData = JSON.parse(jsonData);
-    console.log("Parsed Data:", parsedData);
+    // console.log("Parsed Data:", parsedData);
 
     const cleanedData = removeEmptyValues(parsedData);
     // console.log("Cleaned Data:", cleanedData);
