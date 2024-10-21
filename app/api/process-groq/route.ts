@@ -215,19 +215,15 @@ export async function POST(request: Request) {
 
           // 기존 데이터에 새로운 결과 추가
           Object.keys(categorizedClauses).forEach((key) => {
-            const trimmedKey = key.trim(); // 키의 공백 제거
-            if (Array.isArray(existingData[trimmedKey])) {
-              // 키가 이미 존재하고 배열인 경우, 새로운 데이터를 추가
-              const newItems = categorizedClauses[trimmedKey] || [];
-
-              // Validate newItems to ensure they are strings
-              const validNewItems = newItems.filter(
-                (item: string) => typeof item === "string"
+            if (Array.isArray(existingData[key])) {
+              // 키가 이미 존재하고 배열인 경우, 새로운 데이터를 추가하기 전에 잘못된 항목 제거
+              categorizedClauses[key] = categorizedClauses[key].filter(
+                (clause: string) => clause.length > 10 // Explicitly define clause type as string
+              ); // 임의로 길이가 10 이하인 항목 제외
+              // 중복된 항목 추가 방지
+              existingData[key] = Array.from(
+                new Set([...existingData[key], ...categorizedClauses[key]])
               );
-
-              existingData[trimmedKey] = Array.from(
-                new Set([...existingData[trimmedKey], ...validNewItems])
-              ); // 중복 제거를 위해 Set 사용
             }
           });
 
