@@ -68,7 +68,7 @@ export async function GET() {
     console.log("Parsed Data:", parsedData);
 
     const cleanedData = removeEmptyValues(parsedData);
-    console.log("Cleaned Data:", cleanedData);
+    // console.log("Cleaned Data:", cleanedData);
     await fs.writeFile(
       jsonFilePath,
       JSON.stringify(cleanedData, null, 2),
