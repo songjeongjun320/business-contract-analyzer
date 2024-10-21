@@ -46,3 +46,5 @@ db
 *.txt
 *.pdf
 *.xlsx
+
+.venv
