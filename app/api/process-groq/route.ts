@@ -218,11 +218,15 @@ export async function POST(request: Request) {
             const trimmedKey = key.trim(); // 키의 공백 제거
             if (Array.isArray(existingData[trimmedKey])) {
               // 키가 이미 존재하고 배열인 경우, 새로운 데이터를 추가
+              const newItems = categorizedClauses[trimmedKey] || [];
+
+              // Validate newItems to ensure they are strings
+              const validNewItems = newItems.filter(
+                (item: string) => typeof item === "string"
+              );
+
               existingData[trimmedKey] = Array.from(
-                new Set([
-                  ...existingData[trimmedKey],
-                  ...categorizedClauses[key],
-                ])
+                new Set([...existingData[trimmedKey], ...validNewItems])
               ); // 중복 제거를 위해 Set 사용
             }
           });
