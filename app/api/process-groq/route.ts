@@ -38,6 +38,23 @@ async function getAvailableDirectory(baseDirectory: string): Promise<string> {
   }
 }
 
+// 디렉토리를 재귀적으로 삭제하는 헬퍼 함수
+async function deleteDirectory(directory: string) {
+  const files = await fs.readdir(directory);
+  await Promise.all(
+    files.map(async (file) => {
+      const filePath = path.join(directory, file);
+      const stat = await fs.stat(filePath);
+      if (stat.isDirectory()) {
+        await deleteDirectory(filePath); // 하위 디렉토리를 재귀적으로 삭제
+      } else {
+        await fs.unlink(filePath); // 파일 삭제
+      }
+    })
+  );
+  await fs.rmdir(directory); // 디렉토리 자체 삭제
+}
+
 export async function POST(request: Request) {
   console.log("POST request received"); // Debugging log
   try {
@@ -131,19 +148,21 @@ export async function POST(request: Request) {
             messages: [
               {
                 role: "system",
-                content: `This is a base_data.json file containing keys that represent clauses in a business contract: ${JSON.stringify(
-                  baseData
+                content: `This is a list of keys that represent clauses in a business contract: ${JSON.stringify(
+                  Object.keys(baseData) // baseData의 키만 리스트로 제공
                 )}. Analyze the provided text and categorize the clauses according to these keys. Follow the rules below:
             
-                1. Do not create new keys.
-                2. Only use the existing keys from base_data.json.
-                3. Respond with a JSON format that matches the exact structure of base_data.json.
-                4. Extract relevant sentences from the provided text and add them as values in string format under the appropriate key in base_data.json.
-                5. If the relevant sentence is too long, summarize it to 1 or 2 sentences.`,
+                1. Only use the existing keys from the provided list.
+                2. Respond with a JSON format that matches the exact structure of base_data.json.
+                3. Extract relevant sentences from the provided text and add them as values in string format under the appropriate key in base_data.json.
+                4. If the relevant sentence is too long, summarize it to 1 or 2 sentences.`,
               },
               {
                 role: "user",
-                content: `Ensure the response format matches base_data.json. No comments, Just .json format\n\n${text}`,
+                content: `response format must match base_data.json ${JSON.stringify(
+                  baseData // baseData의 키만 리스트로 제공
+                )} Must not put comments, Just .json.
+                Here is the text \n\n${text}`,
               },
             ],
             model: "llama3-70b-8192",
@@ -194,14 +213,17 @@ export async function POST(request: Request) {
           );
           existingData = JSON.parse(existingFileContent);
 
-          // Append new results to existing data
+          // 기존 데이터에 새로운 결과 추가
           Object.keys(categorizedClauses).forEach((key) => {
-            if (Array.isArray(existingData[key])) {
-              // If key already exists and is an array, append new data
-              existingData[key].push(...categorizedClauses[key]);
-            } else {
-              // If key doesn't exist, create a new array with the new data
-              existingData[key] = categorizedClauses[key];
+            const trimmedKey = key.trim(); // 키의 공백 제거
+            if (Array.isArray(existingData[trimmedKey])) {
+              // 키가 이미 존재하고 배열인 경우, 새로운 데이터를 추가
+              existingData[trimmedKey] = Array.from(
+                new Set([
+                  ...existingData[trimmedKey],
+                  ...categorizedClauses[key],
+                ])
+              ); // 중복 제거를 위해 Set 사용
             }
           });
 
@@ -282,13 +304,32 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ results: successfulResults, errors });
   } catch (error) {
-    console.error("Processing error:", error);
+    console.error("처리 오류:", error);
     return NextResponse.json(
       {
-        error: "Failed to process request.",
+        error: "요청 처리에 실패했습니다.",
         details: (error as Error).message || String(error),
       },
       { status: 500 }
     );
   }
+  //   finally {
+  //     // 처리 후 디렉토리 정리
+  //     const splitPdfDir = path.join(process.cwd(), "app/db/split_pdf_here");
+  //     const splitTxtDir = path.join(process.cwd(), "app/db/split_txt_here");
+
+  //     try {
+  //       await deleteDirectory(splitPdfDir);
+  //       console.log(`삭제된 디렉토리: ${splitPdfDir}`);
+  //     } catch (error) {
+  //       console.error(`디렉토리 ${splitPdfDir} 삭제 중 오류 발생:`, error);
+  //     }
+
+  //     try {
+  //       await deleteDirectory(splitTxtDir);
+  //       console.log(`삭제된 디렉토리: ${splitTxtDir}`);
+  //     } catch (error) {
+  //       console.error(`디렉토리 ${splitTxtDir} 삭제 중 오류 발생:`, error);
+  //     }
+  //   }
 }
