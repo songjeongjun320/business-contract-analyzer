@@ -13,6 +13,7 @@ import {
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,13 +25,16 @@ export default function Home() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
+    setError(null); // 오류 초기화
+    console.log("Form submitted, starting file upload...");
 
     if (file && file.type === "application/pdf") {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("fileName", file.name); // 파일 이름을 추가
+      formData.append("fileName", file.name);
 
       try {
+        console.log("Uploading file...");
         const uploadResponse = await fetch("/api/upload", {
           method: "POST",
           body: formData,
@@ -41,7 +45,9 @@ export default function Home() {
         }
 
         const uploadResult = await uploadResponse.json();
+        console.log("Upload successful, result:", uploadResult);
 
+        console.log("Processing Groq...");
         const groqResponse = await fetch("/api/process-groq", {
           method: "POST",
           headers: {
@@ -50,27 +56,31 @@ export default function Home() {
           body: JSON.stringify({ pages: uploadResult.results }),
         });
 
+        console.log("Groq response status:", groqResponse.status);
         if (!groqResponse.ok) {
           const errorData = await groqResponse.json();
           throw new Error(`Groq processing failed: ${errorData.error}`);
         }
 
         const groqResult = await groqResponse.json();
+        console.log("Groq processing successful, result:", groqResult);
 
         if (groqResult.results && groqResult.results.length > 0) {
           const jsonFilePath = groqResult.results[0].filePath;
+          console.log("Redirecting to analysis with jsonPath:", jsonFilePath);
           router.push(`/analysis?jsonPath=${encodeURIComponent(jsonFilePath)}`);
         } else {
           throw new Error("No pages were successfully processed");
         }
       } catch (error) {
         console.error("Error:", error);
-        alert(error instanceof Error ? error.message : "An error occurred");
+        setError(error instanceof Error ? error.message : "An error occurred");
       } finally {
         setIsLoading(false);
+        console.log("Loading state reset.");
       }
     } else {
-      alert("Please upload a valid PDF file.");
+      setError("Please upload a valid PDF file.");
       setIsLoading(false);
     }
   };
@@ -154,6 +164,8 @@ export default function Home() {
               </>
             )}
           </button>
+          {error && <p className="text-red-500 mt-4">{error}</p>}{" "}
+          {/* 오류 메시지 표시 */}
         </form>
         <div className="bg-white shadow-lg rounded-xl p-8 mt-12">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6">

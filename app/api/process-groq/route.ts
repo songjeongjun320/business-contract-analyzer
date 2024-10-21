@@ -175,13 +175,13 @@ export async function POST(request: Request) {
             response.choices?.[0]?.message?.content?.trim() || "";
 
           // API 결과를 콘솔에 출력
-          // console.log(
-          //   `Groq response start ====================================================`
-          // );
-          // console.log(`${fileName}:`, jsonContent);
-          // console.log(
-          //   `Groq response end =======================================================`
-          // );
+          console.log(
+            `Groq response start ====================================================`
+          );
+          console.log(`${fileName}:`, jsonContent);
+          console.log(
+            `Groq response end =======================================================`
+          );
 
           // Extract only the JSON part (starting from first '{' to last '}')
           if (jsonContent.includes("{") && jsonContent.includes("}")) {
