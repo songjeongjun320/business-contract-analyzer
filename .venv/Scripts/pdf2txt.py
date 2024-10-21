@@ -9,7 +9,6 @@ from typing import Any, Container, Iterable, List, Optional
 import pdfminer.high_level
 from pdfminer.layout import LAParams
 from pdfminer.utils import AnyIO
-from pdfminer.pdfexceptions import PDFValueError
 
 logging.basicConfig()
 
@@ -22,7 +21,7 @@ def float_or_disabled(x: str) -> Optional[float]:
     try:
         return float(x)
     except ValueError:
-        raise argparse.ArgumentTypeError(f"invalid float value: {x}")
+        raise argparse.ArgumentTypeError("invalid float value: {}".format(x))
 
 
 def extract_text(
@@ -41,10 +40,10 @@ def extract_text(
     output_dir: Optional[str] = None,
     debug: bool = False,
     disable_caching: bool = False,
-    **kwargs: Any,
+    **kwargs: Any
 ) -> AnyIO:
     if not files:
-        raise PDFValueError("Must provide files to work upon!")
+        raise ValueError("Must provide files to work upon!")
 
     if output_type == "text" and outfile != "-":
         for override, alttype in OUTPUT_TYPES:
@@ -78,7 +77,7 @@ def create_parser() -> argparse.ArgumentParser:
         "--version",
         "-v",
         action="version",
-        version=f"pdfminer.six v{pdfminer.__version__}",
+        version="pdfminer.six v{}".format(pdfminer.__version__),
     )
     parser.add_argument(
         "--debug",

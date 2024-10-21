@@ -1,151 +1,246 @@
-# flask_server/app.py
-
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
 import os
+import pdfplumber
+import shutil
+import pandas as pd
 import json
+import io
+import asyncio
+import aiohttp
 from dotenv import load_dotenv
-from pdf_processor import split_pdf_and_save
-from model_create import process_toxicity
+from flask import Flask, request, jsonify
 
 # 환경 변수 로드
 load_dotenv()
 
+# Supabase 설정
+SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")  # AI API 키
+PDF_BUCKET = "pdf-uploads"
+RESULT_BUCKET = "txt-results"
+RESULT_DIRECTORY = "./flask_server/result"  # 실제 경로로 변경
+
 app = Flask(__name__)
 
-# 필요한 디렉토리 목록
-required_directories = ['uploads', 'split_pdfs', 'split_txts']
+def create_unique_folder(base_path: str) -> str:
+    """고유한 폴더 생성."""
+    index = 0
+    while True:
+        folder_name = f"result{index:02d}" if index > 0 else "result"
+        folder_path = os.path.join(base_path, folder_name)
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+            return folder_path
+        index += 1
 
-# 디렉토리가 존재하지 않으면 생성
-for directory in required_directories:
-    dir_path = os.path.join(os.path.dirname(__file__), directory)
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
-        print(f"[INFO] 디렉토리 생성: {dir_path}")
-    else:
-        print(f"[INFO] 디렉토리 이미 존재: {dir_path}")
+def process_toxicity(file_path: str) -> dict:
+    """독성 수준 계산."""
+    print(f"[INFO] Processing toxicity for {file_path}")
+    try:
+        df = pd.read_excel(file_path)
+        df['Calculated Toxicity'] = df['Financial Impact'] * df['Probability of happening']
 
-# CORS 설정: 여러 도메인 허용
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+        def categorize_toxicity(toxicity):
+            if toxicity <= 25:
+                return 'low'
+            elif 26 <= toxicity <= 75:
+                return 'medium'
+            else:
+                return 'high'
 
-CORS(app, resources={
-    r"/process-pdf": {"origins": CORS_ALLOWED_ORIGINS},
-    r"/process-toxicity": {"origins": CORS_ALLOWED_ORIGINS},
-    r"/download-txt/<filename>": {"origins": CORS_ALLOWED_ORIGINS},
-    r"/download-pdf/<filename>": {"origins": CORS_ALLOWED_ORIGINS},  # 추가된 부분
-})
+        df['Toxicity Level'] = df['Calculated Toxicity'].apply(categorize_toxicity)
 
-# 최대 파일 크기 설정 (예: 20MB)
-app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 20 MB
+        result = {
+            'all_items': df['Contractual Terms'].tolist(),
+            'high_toxicity_items': df[df['Toxicity Level'] == 'high']['Contractual Terms'].tolist(),
+            'medium_toxicity_items': df[df['Toxicity Level'] == 'medium']['Contractual Terms'].tolist(),
+            'low_toxicity_items': df[df['Toxicity Level'] == 'low']['Contractual Terms'].tolist()
+        }
 
-# API 키 설정
-API_KEY = os.getenv('API_KEY', 'your_default_api_key')
+        print(f"[INFO] Toxicity processing completed: {result}")
+        return result
 
-def require_api_key(func):
-    def wrapper(*args, **kwargs):
-        key = request.headers.get('x-api-key')
-        if key and key == API_KEY:
-            return func(*args, **kwargs)
+    except Exception as e:
+        print(f"[ERROR] Failed to process toxicity: {e}")
+        return {'error': str(e)}
+
+async def send_groq_request(file_name: str, text: str, base_data: dict):
+    """Groq API에 텍스트 파일을 보내고 응답을 처리하는 함수."""
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                f"This is a base_data.json file containing keys that represent clauses "
+                f"in a business contract: {json.dumps(base_data)}. "
+                "Analyze the provided text and categorize the clauses according to these keys. "
+                "Follow the rules below:\n"
+                "1. Do not create new keys.\n"
+                "2. Only use the existing keys from base_data.json.\n"
+                "3. Respond with a JSON format that matches the exact structure of base_data.json.\n"
+                "4. Extract relevant sentences from the provided text and add them as values in string "
+                "format under the appropriate key in base_data.json.\n"
+                "5. If the relevant sentence is too long, summarize it to 1 or 2 sentences."
+            ),
+        },
+        {
+            "role": "user",
+            "content": f"Ensure the response format matches base_data.json. No comments, just .json format\n\n{text}",
+        },
+    ]
+
+    payload = {"messages": messages, "model": "llama3-70b-8192"}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post("https://api.groq.com/v1/completions", headers=headers, json=payload) as response:
+            if response.status == 200:
+                result = await response.json()
+                return result
+            else:
+                print(f"[ERROR] Failed to call Groq API for {file_name}, Status: {response.status}")
+                return None
+
+async def process_text_files(text_files, base_data):
+    """모든 텍스트 파일을 처리하고 Groq API에 보냅니다."""
+    tasks = []
+    
+    for file_name, text in text_files.items():
+        tasks.append(send_groq_request(file_name, text, base_data))
+
+    # 비동기 작업을 병렬로 실행
+    results = await asyncio.gather(*tasks)
+    
+    successful_results = []
+    errors = []
+
+    for i, result in enumerate(results):
+        file_name = list(text_files.keys())[i]
+        if result:
+            print(f"[INFO] Processing response for {file_name}")
+            json_content = result['choices'][0]['message']['content'].strip()
+
+            if "{" in json_content and "}" in json_content:
+                start_index = json_content.index("{")
+                end_index = json_content.rindex("}")
+                json_content = json_content[start_index:end_index + 1]
+
+            try:
+                categorized_clauses = json.loads(json_content)
+                successful_results.append((file_name, categorized_clauses))
+            except json.JSONDecodeError as e:
+                print(f"[ERROR] Failed to parse JSON from Groq API for {file_name}: {e}")
+                errors.append(file_name)
         else:
-            return jsonify({'error': 'Unauthorized'}), 401
-    wrapper.__name__ = func.__name__
-    return wrapper
+            errors.append(file_name)
 
-@app.route('/process-pdf', methods=['POST'])
-@require_api_key
-def process_pdf_endpoint():
+    return successful_results, errors
+
+async def process_all_files(text_files, base_data):
+    """모든 텍스트 파일을 처리하고 결과를 저장합니다."""
+    successful_results, errors = await process_text_files(text_files, base_data)
+
+    existing_data = {}
+    result_file_path = os.path.join(RESULT_DIRECTORY, "all_results.json")
+
+    # 기존 파일 읽기
+    if os.path.exists(result_file_path):
+        with open(result_file_path, "r") as file:
+            existing_data = json.load(file)
+
+    for file_name, categorized_clauses in successful_results:
+        for key, value in categorized_clauses.items():
+            if key in existing_data:
+                existing_data[key].extend(value)
+            else:
+                existing_data[key] = value
+
+    with open(result_file_path, "w") as file:
+        json.dump(existing_data, file, indent=2)
+
+    print(f"[INFO] Saved updated result to JSON file: {result_file_path}")
+    print(f"Successful results count: {len(successful_results)}")
+    print(f"Errors count: {len(errors)}")
+
+    if len(successful_results) == 0:
+        raise Exception("No files were successfully processed.")
+
+@app.route("/api/process-pdf", methods=["POST"])
+def process_pdf():
+    """PDF 처리 및 AI API 호출."""
+    print("[INFO] PDF processing request received.")
+    data = request.json
+    pdf_path = data.get("path")
+
+    if not pdf_path:
+        print("[ERROR] No PDF path provided.")
+        return jsonify({"error": "No PDF path provided"}), 400
+
     try:
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file part in the request'}), 400
+        temp_pdf = pdf_path  # Supabase에서 PDF 다운로드
 
-        file = request.files['file']
+        print(f"[INFO] Extracting text from the PDF file: {temp_pdf}")
+        result_folder = create_unique_folder("/tmp/txt-results")
+        txt_files = {}
+        with pdfplumber.open(temp_pdf) as pdf:
+            for i, page in enumerate(pdf.pages):
+                text = page.extract_text()
+                txt_files[f"page_{i + 1}.txt"] = text
+                print(f"[INFO] Extracted text from page {i + 1}.")
 
-        if file.filename == '':
-            return jsonify({'error': 'No selected file'}), 400
+        weights_file_path = os.path.join(os.path.dirname(__file__), 'weights.xlsx')
+        toxicity_data = process_toxicity(weights_file_path)
 
-        if not file.filename.lower().endswith('.pdf'):
-            return jsonify({'error': 'Invalid file type. Only PDF files are allowed.'}), 400
+        base_data = {item: [] for item in toxicity_data['all_items']}
 
-        # 업로드된 PDF 저장
-        uploads_dir = os.path.join(os.path.dirname(__file__), 'uploads')
-        input_pdf_path = os.path.join(uploads_dir, file.filename)
-        file.save(input_pdf_path)
-        print(f"[INFO] 업로드된 PDF 저장: {input_pdf_path}")
+        print("[INFO] Sending text files to Groq API for processing.")
+        asyncio.run(process_all_files(txt_files, base_data))
 
-        # PDF 처리
-        split_pdfs_dir = os.path.join(os.path.dirname(__file__), 'split_pdfs')
-        split_txts_dir = os.path.join(os.path.dirname(__file__), 'split_txts')
-
-        pdf_result, processed_pdfs, processed_txts, extracted_texts = split_pdf_and_save(input_pdf_path, split_pdfs_dir, split_txts_dir)
-        if "completed successfully" not in pdf_result:
-            return jsonify({'error': pdf_result}), 500
-
-        # 텍스트 파일 다운로드 URL 생성
-        txt_download_urls = {filename: f"/download-txt/{filename}" for filename in processed_txts}
-
-        # PDF 파일 다운로드 URL 생성
-        pdf_download_urls = {filename: f"/download-pdf/{filename}" for filename in processed_pdfs}
-
-        return jsonify({
-            'message': pdf_result,
-            'processed_pdfs': processed_pdfs,
-            'processed_txts': processed_txts,
-            'extracted_texts': extracted_texts,
-            'pdf_download_urls': pdf_download_urls,  # 추가된 부분
-            'txt_download_urls': txt_download_urls
-        }), 200
+        shutil.rmtree(result_folder)
+        print("[INFO] PDF processed successfully.")
+        return jsonify({"message": "PDF processed successfully"}), 200
 
     except Exception as e:
-        print(f"[ERROR] {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        print(f"[ERROR] An error occurred during PDF processing: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
-@app.route('/process-toxicity', methods=['GET'])
-@require_api_key
-def process_toxicity_endpoint():
+def process_pdf_local(pdf_file_path: str):
+    """로컬 경로에 있는 PDF 파일을 처리하는 함수."""
     try:
-        # 엑셀 파일 경로 (app.py와 동일한 디렉토리에 위치)
-        excel_file_path = os.path.join(os.path.dirname(__file__), 'weights.xlsx')
+        print(f"[INFO] Extracting text from the PDF file: {pdf_file_path}")
+        result_folder = "./flask_server/split_txts"
 
-        if not os.path.exists(excel_file_path):
-            return jsonify({'error': 'Excel file not found'}), 404
+        if not os.path.exists(result_folder):
+            os.makedirs(result_folder)
+        
+        txt_files = {}
+        with pdfplumber.open(pdf_file_path) as pdf:
+            for i, page in enumerate(pdf.pages):
+                text = page.extract_text()
+                txt_file_name = f"page_{i + 1}.txt"
+                txt_file_path = os.path.join(result_folder, txt_file_name)
 
-        # 독성 처리 함수 호출
-        toxicity_result = process_toxicity(excel_file_path)
+                with open(txt_file_path, "w") as txt_file:
+                    txt_file.write(text)
 
-        return jsonify({'result': json.loads(toxicity_result)}), 200
+                txt_files[txt_file_name] = txt_file_path
+                print(f"[INFO] Extracted text from page {i + 1} and saved to {txt_file_path}")
+        
+        print(f"[INFO] PDF processed successfully. Files saved in {result_folder}")
+        return True
 
     except Exception as e:
-        print(f"[ERROR] {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        print(f"[ERROR] An error occurred during PDF processing: {str(e)}")
+        return False
 
-@app.route('/download-txt/<filename>', methods=['GET'])
-@require_api_key
-def download_txt(filename):
-    try:
-        # split_txts 디렉토리 경로
-        split_txts_dir = os.path.join(os.path.dirname(__file__), 'split_txts')
-
-        return send_from_directory(directory=split_txts_dir, path=filename, as_attachment=True)
-    except FileNotFoundError:
-        return jsonify({'error': f"File not found: {filename}"}), 404
-    except Exception as e:
-        print(f"[ERROR] {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/download-pdf/<filename>', methods=['GET'])  # 추가된 부분
-@require_api_key
-def download_pdf(filename):
-    try:
-        # split_pdfs 디렉토리 경로
-        split_pdfs_dir = os.path.join(os.path.dirname(__file__), 'split_pdfs')
-
-        return send_from_directory(directory=split_pdfs_dir, path=filename, as_attachment=True)
-    except FileNotFoundError:
-        return jsonify({'error': f"File not found: {filename}"}), 404
-    except Exception as e:
-        print(f"[ERROR] {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-if __name__ == '__main__':
-    # 디버그 모드 비활성화 (배포 시)
-    app.run(host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    pdf_file_path = "./pure_contract.pdf"
+    success = process_pdf_local(pdf_file_path)
+    
+    if success:
+        print("[INFO] PDF processed successfully in local environment.")
+    else:
+        print("[ERROR] Failed to process PDF in local environment.")

@@ -1,0 +1,19 @@
+MASTER SUBCONTRACT AGREEMENT
+In witness whereof, the parties have executed and counter executed this Agreement as of the day and year first above written.
+\d2\ GENERAL CONTRACTOR: W.E. O'Neil Construction Co. of Arizona
+WITNESS BY W.E. O'NEIL CONSTRUCTION (DATE)
+BY: \s2\
+PRINT NAME: Jason Jordan
+PRINT TITLE Vice President of Operations
+SUBCONTRACTOR: Blind Ideas
+\d1\
+WITNESS BY SUBCONTRACTOR (DATE)
+BY: \s1\
+Todd Kramer
+PRINT NAME: \n1\
+President
+PRINT TITLE \jt1\
+We acknowledge receipt (by digital or hard copy) of this Agreement,
+and are in full agreement.
+INITIAL:
+PMSC07_110 Page 15 of 15 Rev. Aug 2017

@@ -26,6 +26,7 @@ export async function uploadFile(formData: FormData) {
     .upload(file.name, file, { upsert: true });
 
   handleError(error);
+  console.log("data : ", data);
 
   return data;
 }
