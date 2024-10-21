@@ -236,6 +236,10 @@ def process_pdf_local(pdf_file_path: str):
         print(f"[ERROR] An error occurred during PDF processing: {str(e)}")
         return False
 
+@app.route('/')
+def home():
+    return "Welcome to the Business Contract Analyzer!"
+
 if __name__ == "__main__":
     pdf_file_path = "./pure_contract.pdf"
     success = process_pdf_local(pdf_file_path)
