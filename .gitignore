@@ -43,7 +43,6 @@ db
 .env
 
 # txt, pdf, excel
-*.txt
 *.pdf
 *.xlsx
 
