@@ -72,7 +72,7 @@ export default function AnalysisPage() {
 
   const sections: SectionData[] = [
     {
-      title: "Critical Attention Required",
+      title: "Critical Risk",
       description:
         "These clauses pose a high risk or significant disadvantage. Careful consideration and potential negotiation are strongly recommended.",
       items: result.high,
@@ -80,7 +80,7 @@ export default function AnalysisPage() {
       textColor: "text-red-800",
     },
     {
-      title: "Moderate Attention Advised",
+      title: "Moderate Risk",
       description:
         "These clauses carry a moderate level of risk or complexity. Evaluate carefully to determine if they align with your needs and expectations.",
       items: result.medium,
@@ -88,7 +88,7 @@ export default function AnalysisPage() {
       textColor: "text-yellow-800",
     },
     {
-      title: "Low Risk, High Protection",
+      title: "Low Risk",
       description:
         "These clauses are generally favorable and pose low risk. They offer good protection with minimal downsides.",
       items: result.low,

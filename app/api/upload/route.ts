@@ -5,12 +5,13 @@ import path from "path";
 import os from "os";
 
 // 임시 디렉토리 경로 설정
-const TEMP_DIRECTORY =
-  process.env.NODE_ENV === "production" ? "/tmp" : os.tmpdir();
+// const TEMP_DIRECTORY =
+//   process.env.NODE_ENV === "production" ? "/tmp" : os.tmpdir();
 
 // 'db' 디렉토리 경로 설정
 const DB_DIRECTORY = path.join(process.cwd(), "app", "db");
 
+const TEMP_DIRECTORY = DB_DIRECTORY;
 // Python 스크립트 실행 함수
 function runPythonScript(command: string) {
   return new Promise((resolve, reject) => {
