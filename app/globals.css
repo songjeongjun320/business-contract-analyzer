@@ -2,16 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 전체 레이아웃을 위한 grid 설정 */
 .grid-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
   gap: 10px;
   width: 100%;
   max-width: 1000px;
   margin: auto;
 }
 
+/* 기본 박스 스타일 */
 .box {
   display: flex;
   align-items: center;
@@ -22,4 +23,23 @@
   font-weight: bold;
   height: 150px;
   width: 150px;
+}
+
+/* 메인 색상 */
+.bg-purple-600 {
+  background-color: #6c63ff;
+}
+
+.hover\\:bg-purple-700:hover {
+  background-color: #5b55e8;
+}
+
+/* PDF 업로드 박스 수정 */
+#file-upload {
+  display: none;
+}
+
+/* 컨테이너의 컬러 전환 추가 */
+.bg-gradient-to-b {
+  background: linear-gradient(to bottom, #e0e7ff, white);
 }
