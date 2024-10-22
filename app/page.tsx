@@ -26,48 +26,17 @@ export default function Home() {
     setIsLoading(true);
 
     if (file && file.type === "application/pdf") {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("fileName", file.name); // 파일 이름을 추가
-
       try {
-        const uploadResponse = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error(`Upload failed: ${await uploadResponse.text()}`);
-        }
-
-        const uploadResult = await uploadResponse.json();
-
-        const groqResponse = await fetch("/api/process-groq", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ pages: uploadResult.results }),
-        });
-
-        if (!groqResponse.ok) {
-          const errorData = await groqResponse.json();
-          throw new Error(`Groq processing failed: ${errorData.error}`);
-        }
-
-        const groqResult = await groqResponse.json();
-
-        if (groqResult.results && groqResult.results.length > 0) {
-          const jsonFilePath = groqResult.results[0].filePath;
+        // 5초 대기 후 analysis 페이지로 이동 (결과는 app/result/final_results.json에서 사용)
+        setTimeout(() => {
+          const jsonFilePath = "/app/result/final_results.json";
           router.push(`/analysis?jsonPath=${encodeURIComponent(jsonFilePath)}`);
-        } else {
-          throw new Error("No pages were successfully processed");
-        }
+        }, 5000);
       } catch (error) {
         console.error("Error:", error);
         alert(error instanceof Error ? error.message : "An error occurred");
       } finally {
-        setIsLoading(false);
+        // 로딩 상태는 setTimeout 이후로 처리
       }
     } else {
       alert("Please upload a valid PDF file.");

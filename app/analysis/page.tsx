@@ -19,29 +19,48 @@ export default function AnalysisPage() {
     medium: string[];
     low: string[];
   } | null>(null);
+  const [originalData, setOriginalData] = useState<{
+    high: string[];
+    medium: string[];
+    low: string[];
+  } | null>(null);
+  const [summarizedData, setSummarizedData] = useState<{
+    high: string[];
+    medium: string[];
+    low: string[];
+  } | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSummarized, setIsSummarized] = useState(false); // 요약된 데이터를 보는지 여부를 추적하는 상태
 
   // 데이터를 가져오는 함수
-  useEffect(() => {
-    const fetchAnalysisData = async () => {
-      try {
-        const response = await fetch("/api/get-final-result");
-        if (!response.ok) {
-          throw new Error("Failed to fetch analysis data");
-        }
-        const data = await response.json();
-        setResult(data);
-      } catch (error) {
-        console.error("Error fetching analysis data:", error);
-        setError("Failed to load analysis result.");
-        setResult(null);
-      } finally {
-        setLoading(false);
+  const fetchAnalysisData = async (
+    url: string,
+    setData: (data: any) => void
+  ) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch analysis data");
       }
-    };
-    fetchAnalysisData();
+      const data = await response.json();
+      setData(data);
+    } catch (error) {
+      console.error("Error fetching analysis data:", error);
+      setError("Failed to load analysis result.");
+      setResult(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 초기 데이터 로드 (original - final_results.json)
+  useEffect(() => {
+    fetchAnalysisData("/result/final_results.json", (data) => {
+      setResult(data);
+      setOriginalData(data); // 원본 데이터 저장
+    });
   }, []);
 
   if (loading) {
@@ -112,18 +131,48 @@ export default function AnalysisPage() {
     doc.save("analysis_result.pdf");
   };
 
+  // 요약된 데이터를 불러오거나 원래 데이터를 복원하는 함수
+  const toggleSummarizedData = () => {
+    setLoading(true);
+    if (isSummarized) {
+      // 요약 데이터를 본 후 원래 데이터로 돌아가는 경우
+      setResult(originalData);
+      setLoading(false); // 즉시 완료
+    } else if (summarizedData) {
+      // 요약된 데이터를 이미 불러온 경우
+      setResult(summarizedData);
+      setLoading(false); // 즉시 완료
+    } else {
+      // 요약된 데이터를 처음 불러오는 경우
+      setTimeout(() => {
+        fetchAnalysisData("/result/final_results_summary.json", (data) => {
+          setSummarizedData(data);
+          setResult(data);
+          setLoading(false);
+        });
+      }, 5000); // 처음 요약된 데이터를 불러올 때 5초 대기
+    }
+    setIsSummarized(!isSummarized); // 요약/원본 상태 전환
+  };
+
   return (
     <div className="min-h-screen p-8 bg-gray-100">
       <div className="max-w-6xl mx-auto">
         <h1 className="mb-8 text-4xl font-bold text-center text-gray-800">
           Contract Analysis Result
         </h1>
-        <div className="flex justify-end mb-6">
+        <div className="flex justify-end gap-4 mb-6">
           <button
             onClick={downloadPDF}
             className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition duration-300 ease-in-out"
           >
             Download PDF
+          </button>
+          <button
+            onClick={toggleSummarizedData}
+            className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition duration-300 ease-in-out"
+          >
+            {isSummarized ? "Original" : "Summarize"}
           </button>
         </div>
         {/* 세로로 배치되도록 */}
