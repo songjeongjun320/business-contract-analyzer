@@ -8,6 +8,10 @@ import asyncio
 import aiohttp
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
+import tempfile
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
 
 # 환경 변수 로드
 load_dotenv()
@@ -168,7 +172,7 @@ async def process_all_files(text_files, base_data):
     if len(successful_results) == 0:
         raise Exception("No files were successfully processed.")
 
-@app.route("/api/process-pdf", methods=["POST"])
+@app.route("/process_pdf")
 def process_pdf():
     """PDF 처리 및 AI API 호출."""
     print("[INFO] PDF processing request received.")
@@ -240,11 +244,38 @@ def process_pdf_local(pdf_file_path: str):
 def home():
     return "Welcome to the Business Contract Analyzer!"
 
-if __name__ == "__main__":
-    pdf_file_path = "./pure_contract.pdf"
-    success = process_pdf_local(pdf_file_path)
+
+@app.route('/process', methods=['POST'])  # POST 메소드 허용
+def process():
+    print(request.files)
+    if 'file' not in request.files:
+        print("error No file part")
+        return jsonify({"error": "No file part"}), 400
     
-    if success:
-        print("[INFO] PDF processed successfully in local environment.")
-    else:
-        print("[ERROR] Failed to process PDF in local environment.")
+    file = request.files['file']
+
+    if file.filename == '':
+        print("error No selected file")
+        return jsonify({"error": "No selected file"}), 400
+    
+    if file and file.filename.endswith('.pdf'):
+        # 임시 디렉토리에 파일 저장
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf', dir='/tmp') as temp_file:
+            file_path = temp_file.name
+            file.save(file_path)
+        
+        return jsonify({"message": "File uploaded successfully", "path": file_path}), 200
+    
+    return jsonify({"error": "Invalid file type"}), 400
+
+
+if __name__ == "__main__":
+    # pdf_file_path = "./pure_contract.pdf"
+    # success = process_pdf_local(pdf_file_path)
+    
+    # if success:
+    #     print("[INFO] PDF processed successfully in local environment.")
+    # else:
+    #     print("[ERROR] Failed to process PDF in local environment.")
+
+    app.run(debug=True)
