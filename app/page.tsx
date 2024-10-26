@@ -2,69 +2,77 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  FileText,
-  Upload,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-} from "lucide-react";
+import { FileText, Upload, CheckCircle } from "lucide-react";
 import { uploadFile } from "@/actions/storageActions";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<any>(null); // 결과 상태 추가
-  const [error, setError] = useState<string | null>(null); // 에러 상태 추가
+  const [isProcessingComplete, setIsProcessingComplete] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setFile(event.target.files[0]);
+      setIsProcessingComplete(false); // 새로운 파일을 선택하면 처리 완료 상태를 초기화
+      setError(null); // 에러 메시지 초기화
     }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+
+    if (!file || file.type !== "application/pdf") {
+      alert("Please upload a valid PDF file.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
-    setResult(null); // 결과 초기화
+    setResult(null);
+    setIsProcessingComplete(false);
 
-    if (file && file.type === "application/pdf") {
-      const formData = new FormData();
-      formData.append("file", file);
-      const result = await uploadFile(formData); // uploadFile의 결과를 result에 할당
-      setResult(result); // 결과 상태 업데이트
-      console.log("Result: ", result); // 추가된 로그
+    const formData = new FormData();
+    formData.append("file", file);
 
-      if (result && result.path) {
-        try {
-          console.log("Send api request to flask for pdf");
+    try {
+      // 파일 업로드
+      const uploadResult = await uploadFile(formData);
+      setResult(uploadResult);
 
-          // Flask 서버로 POST 요청을 보냄
-          const response = await fetch("http://127.0.0.1:5000/process", {
-            method: "POST",
-            body: formData, // PDF 파일을 포함한 FormData 전송
-          });
+      if (uploadResult && uploadResult.path) {
+        console.log("Sending PDF to Flask server...");
 
-          // 응답 상태가 성공이 아닐 경우 오류 처리
-          if (!response.ok) {
-            console.log("Failss");
-            throw new Error("Failed to send signal to Flask server");
-          }
+        // Flask 서버로 POST 요청
+        const response = await fetch("http://127.0.0.1:5000/process", {
+          method: "POST",
+          body: formData,
+        });
 
-          // 성공적으로 Flask 서버에서 JSON 응답을 받았을 경우
-          const responseData = await response.json();
-          console.log("Flask response:", responseData); // 서버 응답을 로그로 출력
-        } catch (error) {
-          console.error("Error sending signal to Flask server:", error);
-          setError("Error processing the PDF on the server.");
+        if (!response.ok) {
+          throw new Error("Failed to send PDF to Flask server");
         }
+
+        const responseData = await response.json();
+        console.log("Flask response:", responseData);
+
+        // 처리 완료 상태를 true로 설정
+        setIsProcessingComplete(true);
+      } else {
+        throw new Error("Failed to upload file");
       }
-    } else {
-      alert("Please upload a valid PDF file.");
+    } catch (error) {
+      console.error("Error processing the PDF:", error);
+      setError("Error processing the PDF on the server.");
+    } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCheckResult = () => {
+    router.push("/analysis");
   };
 
   return (
@@ -110,44 +118,56 @@ export default function Home() {
               Selected file: {file.name}
             </p>
           )}
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white px-6 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-300 ease-in-out flex items-center justify-center"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <svg
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Processing...
-              </>
-            ) : (
-              <>
-                <Upload className="w-5 h-5 mr-2" />
-                Analyze Contract
-              </>
-            )}
-          </button>
+          {/* 버튼 렌더링 로직 변경 */}
+          {!isProcessingComplete ? (
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white px-6 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-300 ease-in-out flex items-center justify-center"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-5 h-5 mr-2" />
+                  Analyze Contract
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleCheckResult}
+              className="w-full bg-green-600 text-white px-6 py-4 rounded-xl text-lg font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-300 ease-in-out flex items-center justify-center"
+            >
+              <CheckCircle className="w-5 h-5 mr-2" />
+              Check the Result
+            </button>
+          )}
         </form>
-        {/* 에러 메시지 표시 섹션 추가 */}
+        {/* 에러 메시지 표시 섹션 */}
         {error && (
           <div
             className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-6"
@@ -157,6 +177,7 @@ export default function Home() {
             <span className="block sm:inline"> {error}</span>
           </div>
         )}
+        {/* 결과 표시 섹션 */}
         {result && (
           <div className="bg-white shadow-lg rounded-xl p-8 mt-12">
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">

@@ -4,10 +4,14 @@ import tempfile
 import requests
 import logging
 import pandas as pd
-from flask import Flask, request, jsonify
 import json
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+
+# CORS 설정 추가
+CORS(app)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='--Log: %(message)s')
@@ -192,5 +196,5 @@ def model_weight():
         return jsonify({"error": "Invalid file type. Please upload an Excel file."}), 400
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
