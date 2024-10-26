@@ -1,78 +1,35 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import supabase from "../../lib/supabaseClient";
-import axios from "axios";
+import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 
-// Supabase 버킷 설정
-const SUPABASE_BUCKET = "pdf-uploads";
+export async function POST(req: Request) {
+  const uploadDir = path.join(process.cwd(), "app/db/txt_results");
 
-// Flask 서버의 엔드포인트 URL
-const FLASK_NOTIFY_URL =
-  process.env.FLASK_NOTIFY_URL || "http://localhost:5000/api/new-pdf";
-
-// 파일을 Supabase에 업로드하는 함수
-async function uploadToSupabase(file: Blob, filename: string) {
-  const { data, error } = await supabase.storage
-    .from(SUPABASE_BUCKET)
-    .upload(`pdfs/${filename}`, file, {
-      cacheControl: "3600",
-      upsert: true,
-    });
-
-  if (error) throw new Error(`Supabase upload failed: ${error.message}`);
-
-  console.log(`[INFO] File uploaded to Supabase: ${data.path}`);
-  return data.path;
-}
-
-// 확장된 Next.js API 요청 타입
-interface ExtendedNextApiRequest extends NextApiRequest {
-  formData: () => Promise<FormData>;
-}
-
-// 미들웨어 적용 함수
-async function applyMiddleware(
-  req: NextApiRequest,
-  res: NextApiResponse,
-  next: Function
-) {
-  console.log(`Request Method: ${req.method}, Request URL: ${req.url}`);
-  const authToken = req.headers["authorization"];
-  if (!authToken) {
-    return res.status(401).json({ message: "Unauthorized" });
+  // 디렉토리가 없으면 생성
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
   }
-  next();
-}
 
-// POST 핸들러 정의
-export async function POST(req: ExtendedNextApiRequest, res: NextApiResponse) {
-  await applyMiddleware(req, res, async () => {
-    try {
-      const formData = await req.formData();
-      const file = formData.get("file") as File | null;
+  // 요청에서 FormData 추출
+  const formData = await req.formData();
 
-      if (!file) {
-        console.warn("[WARNING] No file uploaded.");
-        return res.status(400).json({ error: "No file uploaded" });
-      }
+  // FormData 순회
+  for (const [fieldName, file] of formData.entries()) {
+    if (file instanceof Blob) {
+      // 파일명 가져오기
+      const filename = (file as any).name || "unnamed.txt";
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
 
-      console.log(`[INFO] File uploaded: ${file.name}`);
+      // 파일 저장 경로 설정
+      const filePath = path.join(uploadDir, filename);
 
-      // Supabase에 파일 업로드
-      const uploadedPath = await uploadToSupabase(file, file.name);
+      // 파일 저장
+      fs.writeFileSync(filePath, buffer);
 
-      // Flask 서버에 알림
-      await axios.post(FLASK_NOTIFY_URL, { path: uploadedPath });
-
-      console.log(`[INFO] Notified Flask server: ${uploadedPath}`);
-
-      // 성공 응답
-      res.status(200).json({
-        message: "File uploaded successfully and Flask notified.",
-        path: uploadedPath,
-      });
-    } catch (error: any) {
-      console.error("[ERROR] Upload error:", error.message);
-      res.status(500).json({ error: "An error occurred during upload" });
+      console.log(`--Log: Saved file ${filename}`);
     }
-  });
+  }
+
+  return NextResponse.json({ message: "Files uploaded successfully" });
 }

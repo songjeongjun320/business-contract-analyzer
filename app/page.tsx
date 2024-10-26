@@ -37,26 +37,25 @@ export default function Home() {
       setResult(result); // 결과 상태 업데이트
       console.log("Result: ", result); // 추가된 로그
 
-      // Flask 서버에 신호 보내기
       if (result && result.path) {
         try {
-          const response = await fetch(
-            "http://your-flask-server-url/api/process-pdf",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ path: result.path }),
-            }
-          );
+          console.log("Send api request to flask for pdf");
 
+          // Flask 서버로 POST 요청을 보냄
+          const response = await fetch("http://127.0.0.1:5000/process", {
+            method: "POST",
+            body: formData, // PDF 파일을 포함한 FormData 전송
+          });
+
+          // 응답 상태가 성공이 아닐 경우 오류 처리
           if (!response.ok) {
+            console.log("Failss");
             throw new Error("Failed to send signal to Flask server");
           }
 
+          // 성공적으로 Flask 서버에서 JSON 응답을 받았을 경우
           const responseData = await response.json();
-          console.log("Flask response:", responseData);
+          console.log("Flask response:", responseData); // 서버 응답을 로그로 출력
         } catch (error) {
           console.error("Error sending signal to Flask server:", error);
           setError("Error processing the PDF on the server.");
