@@ -61,7 +61,7 @@ export async function POST(req: Request) {
 
     // Flask 서버의 엔드포인트 URL
     const flaskUrl =
-      "https://business-contract-analyzer-server.fly.dev/model_weight";
+      "https://business-contract-analyzer-flaskserver.vercel.app/model_weight";
 
     // 요청 옵션 설정
     const response = await fetch(flaskUrl, {

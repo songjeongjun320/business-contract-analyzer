@@ -47,7 +47,7 @@ export default function Home() {
 
         // Flask 서버로 POST 요청
         const response = await fetch(
-          "https://business-contract-analyzer-server.fly.dev/process",
+          "https://business-contract-analyzer-flaskserver.vercel.app/process",
           {
             method: "POST",
             body: formData,

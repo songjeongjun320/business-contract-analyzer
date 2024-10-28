@@ -1,13 +1,15 @@
 {
-  "functions": {
-    "api/upload/route.ts": {
-      "runtime": "@vercel/node@2.0.0"
+  "builds": [
+    {
+      "src": "flask_server/application.py",
+      "use": "@vercel/python"
     }
-  },
-  "routes": [{ "src": "/api/upload", "dest": "api/upload/route.ts" }],
-  "build": {
-    "env": {
-      "PYTHONPATH": "/var/task"
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "flask_server/application.py"
     }
-  }
+  ],
+  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
 }
