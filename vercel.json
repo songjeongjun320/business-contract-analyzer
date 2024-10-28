@@ -1,0 +1,15 @@
+{
+  "builds": [
+    {
+      "src": "flask_server/application.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "flask_server/application.py"
+    }
+  ],
+  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
+}
