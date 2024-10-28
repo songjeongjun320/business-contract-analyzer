@@ -46,11 +46,4 @@ db
 *.pdf
 *.xlsx
 
-<<<<<<< HEAD
 .venv
-myenv
-=======
-venv
-
-.venv
->>>>>>> develop

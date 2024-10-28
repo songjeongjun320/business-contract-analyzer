@@ -46,13 +46,10 @@ export default function Home() {
         console.log("Sending PDF to Flask server...");
 
         // Flask 서버로 POST 요청
-        const response = await fetch(
-          "https://business-contract-analyzer-flaskserver.vercel.app/process",
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
+        const response = await fetch("https://localhost:5000/process", {
+          method: "POST",
+          body: formData,
+        });
 
         if (!response.ok) {
           throw new Error("Failed to send PDF to Flask server");
