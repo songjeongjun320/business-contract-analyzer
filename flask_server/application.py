@@ -115,7 +115,7 @@ def process():
                     logging.info(f"Created text file for page {i + 1}: {txt_file_path}")
 
             # Send text files to frontend server
-            frontend_url = "http://localhost:3000/api/upload"
+            frontend_url = " http://localhost:3000/api/upload"
             files = {f"file_{i + 1}": open(txt_file, 'rb') for i, txt_file in enumerate(txt_files)}
 
             try:
