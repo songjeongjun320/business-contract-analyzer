@@ -40,11 +40,17 @@ lib
 db
 
 # .env key
-.env
+.env.local
 
 # txt, pdf, excel
 *.pdf
 *.xlsx
 
+<<<<<<< HEAD
 .venv
 myenv
+=======
+venv
+
+.venv
+>>>>>>> develop
