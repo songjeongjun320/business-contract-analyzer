@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     });
 
     // Flask 서버의 엔드포인트 URL
-    const flaskUrl = "https://localhost:5000/model_weight";
+    const flaskUrl = "http://127.0.0.1:5000/model_weight";
 
     // 요청 옵션 설정
     const response = await fetch(flaskUrl, {
@@ -86,12 +86,14 @@ export async function POST(req: Request) {
       console.log(`--Log: Created result directory: ${resultDir}`);
 
       // all_items에서 키를 생성하여 빈 배열을 값으로 하는 객체 생성
-      const allItems = result.all_items; // 리스트 형태
-
       const allResultsData: { [key: string]: any[] } = {};
-      allItems.forEach((item: string) => {
-        allResultsData[item] = [];
-      });
+      if (Array.isArray(result.all_items)) {
+        result.all_items.forEach((item: string) => {
+          allResultsData[item] = [];
+        });
+      } else {
+        console.error("--Log: all_items is not an array:", result.all_items);
+      }
 
       // all_results.json 및 base_data.json 파일 저장
       const allResultsPath = path.join(resultDir, "all_results.json");

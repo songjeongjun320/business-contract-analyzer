@@ -46,7 +46,7 @@ export default function Home() {
         console.log("Sending PDF to Flask server...");
 
         // Flask 서버로 POST 요청
-        const response = await fetch("https://localhost:5000/process", {
+        const response = await fetch("http://127.0.0.1:5000/process", {
           method: "POST",
           body: formData,
         });
