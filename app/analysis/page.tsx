@@ -19,97 +19,51 @@ export default function AnalysisPage() {
     medium: string[];
     low: string[];
   } | null>(null);
-  const [originalData, setOriginalData] = useState<{
-    high: string[];
-    medium: string[];
-    low: string[];
-  } | null>(null);
-  const [summarizedData, setSummarizedData] = useState<{
-    high: string[];
-    medium: string[];
-    low: string[];
-  } | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSummarized, setIsSummarized] = useState(false);
-  const [darkMode, setDarkMode] = useState(false); // 다크 모드 상태 추가
 
-  const fetchAnalysisData = async (
-    url: string,
-    setData: (data: any) => void
-  ) => {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("Failed to fetch analysis data");
-      }
-      const data = await response.json();
-      setData(data);
-    } catch (error) {
-      console.error("Error fetching analysis data:", error);
-      setError("Failed to load analysis result.");
-      setResult(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // 데이터를 가져오는 함수
   useEffect(() => {
-    fetchAnalysisData("/result/final_results.json", (data) => {
-      setResult(data);
-      setOriginalData(data);
-    });
+    const fetchAnalysisData = async () => {
+      try {
+        const response = await fetch("/api/get-final-result");
+        if (!response.ok) {
+          throw new Error("Failed to fetch analysis data");
+        }
+        const data = await response.json();
+        setResult(data);
+      } catch (error) {
+        console.error("Error fetching analysis data:", error);
+        setError("Failed to load analysis result.");
+        setResult(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAnalysisData();
   }, []);
 
   if (loading) {
     return (
-      <div
-        className={`flex items-center justify-center min-h-screen ${
-          darkMode ? "bg-gray-900" : "bg-gray-100"
-        }`}
-      >
-        <p
-          className={`text-xl font-semibold ${
-            darkMode ? "text-gray-300" : "text-gray-600"
-          }`}
-        >
-          Loading...
-        </p>
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <p className="text-xl font-semibold text-gray-600">Loading...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div
-        className={`flex items-center justify-center min-h-screen ${
-          darkMode ? "bg-gray-900" : "bg-gray-100"
-        }`}
-      >
-        <p
-          className={`text-xl font-semibold ${
-            darkMode ? "text-red-400" : "text-red-600"
-          }`}
-        >
-          {error}
-        </p>
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <p className="text-xl font-semibold text-red-600">{error}</p>
       </div>
     );
   }
 
   if (!result) {
     return (
-      <div
-        className={`flex items-center justify-center min-h-screen ${
-          darkMode ? "bg-gray-900" : "bg-gray-100"
-        }`}
-      >
-        <p
-          className={`text-xl font-semibold ${
-            darkMode ? "text-red-400" : "text-red-600"
-          }`}
-        >
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <p className="text-xl font-semibold text-red-600">
           No results available.
         </p>
       </div>
@@ -118,28 +72,28 @@ export default function AnalysisPage() {
 
   const sections: SectionData[] = [
     {
-      title: "Critical Risk",
+      title: "Critical Attention Required",
       description:
         "These clauses pose a high risk or significant disadvantage. Careful consideration and potential negotiation are strongly recommended.",
       items: result.high,
-      bgColor: darkMode ? "bg-red-800" : "bg-red-100",
-      textColor: darkMode ? "text-red-200" : "text-red-800",
+      bgColor: "bg-red-100",
+      textColor: "text-red-800",
     },
     {
-      title: "Moderate Risk",
+      title: "Moderate Attention Advised",
       description:
         "These clauses carry a moderate level of risk or complexity. Evaluate carefully to determine if they align with your needs and expectations.",
       items: result.medium,
-      bgColor: darkMode ? "bg-yellow-800" : "bg-yellow-100",
-      textColor: darkMode ? "text-yellow-200" : "text-yellow-800",
+      bgColor: "bg-yellow-100",
+      textColor: "text-yellow-800",
     },
     {
-      title: "Low Risk",
+      title: "Low Risk, High Protection",
       description:
         "These clauses are generally favorable and pose low risk. They offer good protection with minimal downsides.",
       items: result.low,
-      bgColor: darkMode ? "bg-green-800" : "bg-green-100",
-      textColor: darkMode ? "text-green-200" : "text-green-800",
+      bgColor: "bg-green-100",
+      textColor: "text-green-800",
     },
   ];
 
@@ -158,112 +112,62 @@ export default function AnalysisPage() {
     doc.save("analysis_result.pdf");
   };
 
-  const toggleSummarizedData = () => {
-    setLoading(true);
-    if (isSummarized) {
-      setResult(originalData);
-      setLoading(false);
-    } else if (summarizedData) {
-      setResult(summarizedData);
-      setLoading(false);
-    } else {
-      setTimeout(() => {
-        fetchAnalysisData("/result/final_results_summary.json", (data) => {
-          setSummarizedData(data);
-          setResult(data);
-          setLoading(false);
-        });
-      }, 5000);
-    }
-    setIsSummarized(!isSummarized);
-  };
-
   return (
-    <div
-      className={`min-h-screen p-8 ${darkMode ? "bg-gray-900" : "bg-gray-50"}`}
-    >
-      <div className="max-w-5xl mx-auto">
-        <h1
-          className={`mb-8 text-4xl font-bold text-center ${
-            darkMode ? "text-gray-300" : "text-gray-800"
-          }`}
-        >
+    <div className="min-h-screen p-8 bg-gray-100">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="mb-8 text-4xl font-bold text-center text-gray-800">
           Contract Analysis Result
         </h1>
-        <div className="flex justify-between mb-6">
+        <div className="flex justify-end mb-6">
           <button
-            onClick={() => setDarkMode(!darkMode)}
-            className={`px-4 py-2 text-white rounded-md ${
-              darkMode ? "bg-gray-700" : "bg-gray-500"
-            }`}
+            onClick={downloadPDF}
+            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition duration-300 ease-in-out"
           >
-            {darkMode ? "Light Mode" : "Dark Mode"}
+            Download PDF
           </button>
-          <div className="flex justify-end gap-4">
-            <button
-              onClick={downloadPDF}
-              className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition duration-300 ease-in-out"
-            >
-              Download PDF
-            </button>
-            <button
-              onClick={toggleSummarizedData}
-              className={`px-4 py-2 text-white rounded-md transition duration-300 ease-in-out ${
-                isSummarized
-                  ? "bg-purple-600 hover:bg-purple-700"
-                  : "bg-green-600 hover:bg-purple-600"
-              }`}
-            >
-              {isSummarized ? "Original" : "Summarize"}
-            </button>
-          </div>
         </div>
-
-        {/* 카드 레이아웃 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {sections.map((section, index) => (
-            <div
-              key={index}
-              className={`p-6 rounded-lg shadow-lg ${section.bgColor} cursor-pointer transition-transform transform hover:scale-105`}
-              onClick={() => setExpandedSection(section.title)}
-            >
-              <h2 className={`mb-3 text-xl font-semibold ${section.textColor}`}>
-                {section.title}
-              </h2>
-              <p
-                className={`mb-4 text-sm ${
-                  darkMode ? "text-gray-300" : "text-gray-600"
-                }`}
+        {/* 세로로 배치되도록 */}
+        <div className="flex flex-col gap-6">
+          {sections
+            .sort((a, b) => {
+              const order: { [key: string]: number } = {
+                "Critical Attention Required": 1,
+                "Moderate Attention Advised": 2,
+                "Low Risk, High Protection": 3,
+              };
+              return order[a.title] - order[b.title];
+            })
+            .map((section, index) => (
+              <div
+                key={index}
+                className={`p-8 rounded-lg shadow-md ${section.bgColor} cursor-pointer transition-all duration-300 hover:shadow-lg`}
+                onClick={() => setExpandedSection(section.title)}
               >
-                {section.description}
-              </p>
-              <ul className="space-y-2">
-                {section.items.slice(0, 3).map((item, itemIndex) => (
-                  <li key={itemIndex} className="flex items-start">
-                    <span className={`mr-2 text-lg ${section.textColor}`}>
-                      •
-                    </span>
-                    <span
-                      className={`text-gray-700 ${
-                        darkMode ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      {item}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              {section.items.length > 3 && (
-                <p
-                  className={`mt-2 text-sm ${
-                    darkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
+                <h2
+                  className={`mb-3 text-xl font-semibold ${section.textColor}`}
                 >
-                  Click to see more...
+                  {section.title}
+                </h2>
+                <p className="mb-2 text-sm text-gray-600">
+                  {section.description}
                 </p>
-              )}
-            </div>
-          ))}
+                <ul className="space-y-2">
+                  {section.items.slice(0, 2).map((item, itemIndex) => (
+                    <li key={itemIndex} className="flex items-start">
+                      <span className={`mr-2 text-lg ${section.textColor}`}>
+                        •
+                      </span>
+                      <span className="text-gray-700">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                {section.items.length > 2 && (
+                  <p className="mt-2 text-sm text-gray-500">
+                    Click to see more...
+                  </p>
+                )}
+              </div>
+            ))}
         </div>
       </div>
 
@@ -276,7 +180,7 @@ export default function AnalysisPage() {
             className={`w-full max-w-2xl p-6 rounded-lg shadow-xl bg-white relative overflow-y-auto ${
               sections.find((s) => s.title === expandedSection)?.bgColor
             }`}
-            style={{ maxHeight: "90vh" }}
+            style={{ maxHeight: "90vh" }} // 팝업 창의 최대 높이를 90vh로 설정하여 더 많은 공간을 차지하도록 수정합니다.
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
@@ -296,9 +200,7 @@ export default function AnalysisPage() {
                 <X size={24} />
               </button>
             </div>
-            <p
-              className={`mb-4 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
-            >
+            <p className="mb-4 text-gray-700">
               {sections.find((s) => s.title === expandedSection)?.description}
             </p>
             <ul className="space-y-2">
@@ -314,13 +216,7 @@ export default function AnalysisPage() {
                     >
                       •
                     </span>
-                    <span
-                      className={`text-gray-700 ${
-                        darkMode ? "text-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      {item}
-                    </span>
+                    <span className="text-gray-700">{item}</span>
                   </li>
                 ))}
             </ul>

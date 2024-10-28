@@ -1,0 +1,53 @@
+{
+  "high": [],
+  "medium": [],
+  "low": [],
+  "Insurance": [],
+  "Liability": [
+    "The liability of the Subcontractor hereunder shall extend to and include the full amount of Costs incurred and obligations assumed by the General Contractor in good faith under the reasonable belief that such Costs or obligations were necessary or required, whether actually necessary or required or not."
+  ],
+  "Indeminification": [
+    "Subcontractor shall defend, indemnify and hold harmless the Owner, General Contractor, and others required in the Subcontract Documents from and against claims, damages, losses and expenses.",
+    "The indemnity set forth in this section shall not be limited by insurance requirements or by any other provision of this Agreement.",
+    "Subcontractor shall defend General Contractor or other indemnitee to the maximum amount allowed by law.",
+    "To the fullest extent permitted by law, Subcontractor shall defend, indemnify and hold harmless the Owner, General Contractor, General Contractor's sureties, Architect, or other design consultant, or any of their respective consultants, agents and employees of any of them against claims, damages, losses and expense, including, but not limited to, attorney's fees, arising out of or resulting from any mechanic's liens, stop notices, or payment bond claims filed by Subcontractor, Subcontractor's subcontractors (of any tier), anyone directly or indirectly employed by them or Subcontractor's suppliers or vendors."
+  ],
+  "Default": [
+    "In the event that the Subcontractor fails to comply, or becomes incapable of complying, with the terms of this Agreement, it shall be considered a default by Subcontractor of this Agreement.",
+    "Default events include, but are not limited, to the following: ... (a - g)",
+    "In the event of any default by Subcontractor, General Contractor shall give Subcontractor written Notice of the deficient condition and allow the Subcontractor 48 hours to cure said default.",
+    "Failure of Subcontractor to promptly comply with General Contractor's request for additional assurances shall constitute an event of default under this Agreement."
+  ],
+  "Penalties": [
+    "If upon the expiration of the 48 hour period Subcontractor has not cured the default then General Contractor may, without further Notice, and at its sole discretion, take any or all of the following actions:",
+    "The unpaid expense will accrue interest at the maximum interest permitted by law."
+  ],
+  "Damages": [
+    "If a Subcontractor fails to timely and adequately perform its obligations under Subparagraph (a) above, General Contractor shall have the right to pursue a claim against Subcontractor for any resulting compensatory damages, consequential damages, and reasonable attorney's fees.",
+    "If Subcontractor fails to timely perform its obligations under Subparagraph (b) above, General Contractor shall have the right to pursue a claim against Subcontractor for any resulting compensatory damages, interest, on defense and indemnity costs, from the date incurred, at the rate set forth in Arizona Revised Statute, consequential damages, and reasonable attorney's fees incurred to recover these amounts.",
+    "The expense incurred by General Contractor shall include General Contractor's costs for completing the work, including overhead, profit, attorney's fees, and any damages, including Liquidated Damages, incurred by General Contractor by reason of Subcontractor's default."
+  ],
+  "Termination for cause": [
+    "In such case, the General Contractor shall have the right to take and use any materials, equipment, or tools of the Subcontractor for the purpose of completing the Work.",
+    "Termination shall be by service of written notice to Subcontractor's place of business."
+  ],
+  "Termination for convenience": [
+    "In addition to termination for cause as described above, the General Contractor may at any time and for any reason in General Contractors' sole discretion, terminate Subcontractor's services and work at General Contractor's convenience.",
+    "Upon such termination for convenience, Subcontractor shall be entitled to payment only as follows:"
+  ],
+  "Sole discretion": [
+    "General Contractor shall have the right to pursue a claim against Subcontractor for any resulting compensatory damages, consequential damages, and reasonable attorney's fees.",
+    "General Contractor in its discretion may require the Subcontractor to furnish a surety bond guaranteeing protection to the full extent of this defense and indemnity obligation, which bond shall be furnished by the Subcontractor within five (5) days after written demand has been made.",
+    "If upon the expiration of the 48 hour period Subcontractor has not cured the default then General Contractor may, without further Notice, and at its sole discretion, take any or all of the following actions:",
+    "Notwithstanding any other provisions in this Agreement, General Contractor reserves the sole discretionary right to require Subcontractor to provide additional assurances as to Subcontractor's performance.",
+    "In addition to termination for cause as described above, the General Contractor may at any time and for any reason in General Contractors' sole discretion, terminate Subcontractor's services and work at General Contractor's convenience."
+  ],
+  "Dispute": [],
+  "Clean up": [
+    "Fails to comply with safe practices, including the maintenance of a clean jobsite."
+  ],
+  "Terms of payment": [
+    "At that time, if the amounts earned, but not paid to Subcontractor before the termination exceed the expenses and damages incurred by General Contractor in completing Subcontractor's work, any excess shall be paid by General Contractor to Subcontractor.",
+    "Upon such termination for convenience, Subcontractor shall be entitled to payment only as follows: (a) the value of the Subcontract work completed in conformity with this Agreement, the Subcontract Sum, and approved progress payment schedules, plus (b) such other costs actually incurred by Subcontractor as permitted by the Prime Contract and approved by the Owner, plus (c) reasonable markup for home office overhead and profit shall be in conformity with the Subcontract Sum and approved progress payment schedules but in no event shall exceed 15% of the cost of the work, less (d) any deductive credits or amounts due from Subcontractor to General Contractor in accordance with this Agreement."
+  ]
+}

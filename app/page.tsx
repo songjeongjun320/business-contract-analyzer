@@ -77,10 +77,10 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-white py-12 sm:py-16 lg:py-20">
-      <div className="w-full max-w-5xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
+      <div className="w-full max-w-2xl px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-800 mb-4">
-            Business Contract Analyzer
+            Contract Analyzer
           </h1>
           <p className="text-xl text-gray-600 mb-8">
             Upload your business contract and we'll highlight the key clauses

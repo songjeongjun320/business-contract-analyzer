@@ -86,14 +86,12 @@ export async function POST(req: Request) {
       console.log(`--Log: Created result directory: ${resultDir}`);
 
       // all_items에서 키를 생성하여 빈 배열을 값으로 하는 객체 생성
+      const allItems = result.all_items; // 리스트 형태
+
       const allResultsData: { [key: string]: any[] } = {};
-      if (Array.isArray(result.all_items)) {
-        result.all_items.forEach((item: string) => {
-          allResultsData[item] = [];
-        });
-      } else {
-        console.error("--Log: all_items is not an array:", result.all_items);
-      }
+      allItems.forEach((item: string) => {
+        allResultsData[item] = [];
+      });
 
       // all_results.json 및 base_data.json 파일 저장
       const allResultsPath = path.join(resultDir, "all_results.json");
