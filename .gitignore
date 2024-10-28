@@ -46,4 +46,6 @@ db
 *.pdf
 *.xlsx
 
-.venv
+
+
+.venv/
