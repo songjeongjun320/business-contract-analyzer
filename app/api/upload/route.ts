@@ -7,40 +7,15 @@ import { Groq } from "groq-sdk";
 import { exec } from "child_process";
 import { promisify } from "util";
 
-<<<<<<< HEAD
-// 임시 디렉토리 경로 설정
-// const TEMP_DIRECTORY =
-//   process.env.NODE_ENV === "production" ? "/tmp" : os.tmpdir();
-=======
 const execAsync = promisify(exec);
->>>>>>> develop
 
 export async function POST(req: Request) {
   const uploadDir = path.join(process.cwd(), "app/db/txt_results");
 
-<<<<<<< HEAD
-const TEMP_DIRECTORY = DB_DIRECTORY;
-// Python 스크립트 실행 함수
-function runPythonScript(command: string) {
-  return new Promise((resolve, reject) => {
-    console.log(`Executing command: ${command}`);
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing script: ${stderr}`);
-        reject(stderr);
-      } else {
-        console.log(`Script output: ${stdout}`);
-        resolve(stdout);
-      }
-    });
-  });
-}
-=======
   // 디렉토리가 없으면 생성
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
->>>>>>> develop
 
   // 요청에서 FormData 추출
   const formData = await req.formData();
@@ -85,7 +60,8 @@ function runPythonScript(command: string) {
     });
 
     // Flask 서버의 엔드포인트 URL
-    const flaskUrl = "http://127.0.0.1:5000/model_weight";
+    const flaskUrl =
+      "https://business-contract-analyzer-server.fly.dev/model_weight";
 
     // 요청 옵션 설정
     const response = await fetch(flaskUrl, {
