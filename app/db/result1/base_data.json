@@ -1,0 +1,20 @@
+{
+  "high": [
+    "Default",
+    "Penalties",
+    "Terms of payment"
+  ],
+  "medium": [
+    "Damages",
+    "Termination for cause",
+    "Termination for convenience",
+    "Sole discretion"
+  ],
+  "low": [
+    "Insurance",
+    "Liability",
+    "Indeminification",
+    "Dispute",
+    "Clean up"
+  ]
+}

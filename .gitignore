@@ -37,7 +37,6 @@ next-env.d.ts
 
 # sample datas
 lib
-db
 
 # .env key
 .env.local
