@@ -46,10 +46,13 @@ export default function Home() {
         console.log("Sending PDF to Flask server...");
 
         // Flask 서버로 POST 요청
-        const response = await fetch("http://127.0.0.1:5000/process", {
-          method: "POST",
-          body: formData,
-        });
+        const response = await fetch(
+          "https://b-cntrct-anlyzer-flask-server-81e4bd0c510c.herokuapp.com/process",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Failed to send PDF to Flask server");
