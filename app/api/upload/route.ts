@@ -78,7 +78,8 @@ export async function POST(req: Request) {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 
-    const flaskUrl = "http://127.0.0.1:5000/model_weight";
+    const flaskUrl =
+      "https://b-cntrct-anlyzer-flask-server-81e4bd0c510c.herokuapp.com//model_weight";
     const response = await fetch(flaskUrl, {
       method: "POST",
       body: form as any,
