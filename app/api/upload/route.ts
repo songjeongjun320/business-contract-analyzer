@@ -31,6 +31,7 @@ export async function OPTIONS() {
 // POST 요청 핸들러 (파일 처리 및 Flask 서버와의 상호작용)
 export async function POST(req: Request) {
   const origin = req.headers.get("origin");
+  console.log("Request origin:", origin);
   if (origin !== ALLOWED_ORIGIN) {
     return NextResponse.json(
       { error: "CORS Policy Error: Not allowed" },
