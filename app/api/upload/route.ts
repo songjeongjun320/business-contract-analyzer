@@ -11,8 +11,7 @@ import * as fsSync from "fs"; // 동기 작업을 위한 기본 fs 모듈
 const execAsync = promisify(exec);
 
 // Allow POST requests from the specified origin
-const ALLOWED_ORIGIN =
-  "https://b-cntrct-anlyzer-flask-server-81e4bd0c510c.herokuapp.com";
+const ALLOWED_ORIGIN = process.env.NEXT_PUBLIC_FLASK_SERVER_URL!; // NEXT_PUBLIC_LOCAL --> Local 일때,
 
 // CORS 헤더를 설정하는 함수
 const setCorsHeaders = (response: Response) => {
@@ -92,8 +91,8 @@ export async function POST(req: Request) {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 
-    const flaskUrl =
-      "https://b-cntrct-anlyzer-flask-server-81e4bd0c510c.herokuapp.com/model_weight";
+    const flaskUrl = `${process.env
+      .NEXT_PUBLIC_FLASK_SERVER_URL!}/model_weight`;
     const responseFromFlask = await fetch(flaskUrl, {
       method: "POST",
       body: form as any,

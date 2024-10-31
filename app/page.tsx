@@ -47,7 +47,7 @@ export default function Home() {
 
         // Flask 서버로 POST 요청
         const response = await fetch(
-          "https://b-cntrct-anlyzer-flask-server-81e4bd0c510c.herokuapp.com/process",
+          `${process.env.NEXT_PUBLIC_FLASK_SERVER_URL!}/process`, // NEXT_PUBLIC_LOCAL --> lOCAL로 할때
           {
             method: "POST",
             body: formData,
