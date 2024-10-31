@@ -18,6 +18,7 @@ export default function Home() {
       setFile(event.target.files[0]);
       setIsProcessingComplete(false); // 새로운 파일을 선택하면 처리 완료 상태를 초기화
       setError(null); // 에러 메시지 초기화
+      console.log("File selected:", event.target.files[0].name);
     }
   };
 
@@ -39,15 +40,21 @@ export default function Home() {
 
     try {
       // 파일 업로드
+      console.log("Uploading file to Vercel server...");
       const uploadResult = await uploadFile(formData);
+      console.log("Upload result:", uploadResult);
       setResult(uploadResult);
 
       if (uploadResult && uploadResult.path) {
         console.log("Sending PDF to Flask server...");
+        console.log(
+          "Flask server URL:",
+          process.env.NEXT_PUBLIC_FLASK_SERVER_URL
+        );
 
         // Flask 서버로 POST 요청
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_FLASK_SERVER_URL!}/process`, // NEXT_PUBLIC_LOCAL --> lOCAL로 할때
+          `${process.env.NEXT_PUBLIC_FLASK_SERVER_URL!}/process`, // NEXT_PUBLIC_LOCAL --> LOCAL로 할때
           {
             method: "POST",
             body: formData,
