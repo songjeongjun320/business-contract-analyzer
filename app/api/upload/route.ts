@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
 import path from "path";
 import FormData from "form-data";
 import fetch from "node-fetch";
 import { Groq } from "groq-sdk";
 import { exec } from "child_process";
 import { promisify } from "util";
+import fs from "fs/promises"; // 비동기 작업을 위한 fs 모듈
+import * as fsSync from "fs"; // 동기 작업을 위한 기본 fs 모듈
 
 const execAsync = promisify(exec);
 
@@ -26,7 +27,6 @@ export async function OPTIONS() {
   const response = NextResponse.json({ message: "CORS preflight successful" });
   return setCorsHeaders(response);
 }
-
 // POST 요청 핸들러 (파일 처리 및 Flask 서버와의 상호작용)
 export async function POST(req: Request) {
   const origin = req.headers.get("origin");
@@ -192,7 +192,8 @@ function getNextResultDir(baseDir: string): string {
   let resultDir = path.join(baseDir, "result");
   let counter = 1;
 
-  while (fs.existsSync(resultDir)) {
+  // 기본 fs 모듈의 existsSync 사용
+  while (fsSync.existsSync(resultDir)) {
     resultDir = path.join(baseDir, `result${counter}`);
     counter++;
   }
@@ -204,9 +205,6 @@ function getNextResultDir(baseDir: string): string {
 // process_groq 함수 정의 ====================================================================================================
 async function process_groq(resultDir: string) {
   console.log("process_groq 함수 시작");
-
-  // 필요한 모듈들
-  const fsPromises = fs.promises;
 
   // base_data.json 파일 경로
   const baseDataPath = path.join(resultDir, "base_data.json");
@@ -221,12 +219,9 @@ async function process_groq(resultDir: string) {
   let lowItems: string[] = [];
 
   try {
-    const baseDataContent = await fsPromises.readFile(baseDataPath, "utf-8");
+    const baseDataContent = await fs.readFile(baseDataPath, "utf-8");
     const baseDataJson = JSON.parse(baseDataContent);
-    const allResultContent = await fsPromises.readFile(
-      all_results_Path,
-      "utf-8"
-    );
+    const allResultContent = await fs.readFile(all_results_Path, "utf-8");
     const allResultDataJson = JSON.parse(allResultContent);
 
     // baseData 초기화
@@ -249,7 +244,7 @@ async function process_groq(resultDir: string) {
   const splitDir = path.join(process.cwd(), "app/db/txt_results");
 
   // 텍스트 파일들 읽기
-  const files = await fsPromises.readdir(splitDir);
+  const files = await fs.readdir(splitDir);
   const textFiles = files.filter((file) => file.endsWith(".txt"));
 
   console.log("텍스트 파일들 발견:", textFiles);
@@ -263,7 +258,7 @@ async function process_groq(resultDir: string) {
   const results = await Promise.all(
     textFiles.map(async (fileName) => {
       const filePath = path.join(splitDir, fileName);
-      const text = await fsPromises.readFile(filePath, "utf-8");
+      const text = await fs.readFile(filePath, "utf-8");
 
       console.log(`파일 처리 중: ${fileName}`);
 
@@ -329,7 +324,7 @@ async function process_groq(resultDir: string) {
 
         let existingData: Record<string, any[]> = {};
         try {
-          const existingFileContent = await fsPromises.readFile(
+          const existingFileContent = await fs.readFile(
             resultFilePath,
             "utf-8"
           );
@@ -352,7 +347,7 @@ async function process_groq(resultDir: string) {
         });
 
         // 업데이트된 결과를 JSON 파일로 저장
-        await fsPromises.writeFile(
+        await fs.writeFile(
           resultFilePath,
           JSON.stringify(existingData, null, 2)
         );
@@ -391,10 +386,7 @@ async function process_groq(resultDir: string) {
   let finalLow: string[] = [];
 
   try {
-    const allResultsContent = await fsPromises.readFile(
-      allResultsPath,
-      "utf-8"
-    );
+    const allResultsContent = await fs.readFile(allResultsPath, "utf-8");
     const allResults = JSON.parse(allResultsContent);
 
     // 키 값을 기준으로 각 문장을 분류하여 high, medium, low 리스트에 추가
@@ -417,10 +409,7 @@ async function process_groq(resultDir: string) {
     };
 
     const finalResultsPath = path.join(resultDir, "final_results.json");
-    await fsPromises.writeFile(
-      finalResultsPath,
-      JSON.stringify(finalResults, null, 2)
-    );
+    await fs.writeFile(finalResultsPath, JSON.stringify(finalResults, null, 2));
     console.log("Final results saved to final_results.json");
   } catch (error) {
     console.error("Error reading or writing JSON files:", error);
