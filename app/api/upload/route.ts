@@ -9,8 +9,27 @@ import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
+// Allow POST requests from the specified origin
+const ALLOWED_ORIGIN =
+  "https://b-cntrct-anlyzer-flask-server-81e4bd0c510c.herokuapp.com";
+
 export async function POST(req: Request) {
   const uploadDir = path.join(process.cwd(), "app/db/txt_results");
+
+  // Check for allowed origin in request headers
+  const origin = req.headers.get("origin");
+  if (origin !== ALLOWED_ORIGIN) {
+    return NextResponse.json(
+      { error: "CORS Policy Error: Not allowed" },
+      { status: 403 }
+    );
+  }
+
+  // Add CORS headers
+  const response = NextResponse.next();
+  response.headers.set("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+  response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
 
   // 디렉토리가 없으면 생성
   if (!fs.existsSync(uploadDir)) {
@@ -38,11 +57,11 @@ export async function POST(req: Request) {
     }
   }
 
-  // 'weights.xlsx' 파일을 Flask 서버로 전송
+  // Here is the logic for sending weights.xlsx to Flask server
   try {
+    // Rest of your code follows as usual...
     const weightsFilePath = path.join(process.cwd(), "app/db/weights.xlsx");
 
-    // 파일이 존재하는지 확인
     if (!fs.existsSync(weightsFilePath)) {
       console.error("--Log: weights.xlsx 파일이 존재하지 않습니다.");
       return NextResponse.json(
@@ -51,7 +70,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // FormData 생성
+    // FormData 생성 및 요청 옵션 설정
     const form = new FormData();
     form.append("file", fs.createReadStream(weightsFilePath), {
       filename: "weights.xlsx",
@@ -59,13 +78,10 @@ export async function POST(req: Request) {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 
-    // Flask 서버의 엔드포인트 URL
     const flaskUrl = "http://127.0.0.1:5000/model_weight";
-
-    // 요청 옵션 설정
     const response = await fetch(flaskUrl, {
       method: "POST",
-      body: form as any, // 타입 캐스팅으로 타입 오류를 우회합니다.
+      body: form as any,
       headers: form.getHeaders(),
     });
 
