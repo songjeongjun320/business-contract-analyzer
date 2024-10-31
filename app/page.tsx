@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Upload, CheckCircle } from "lucide-react";
-import { uploadFile } from "@/actions/storageActions";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -40,39 +39,29 @@ export default function Home() {
 
     try {
       // 파일 업로드
-      console.log("Uploading file to Vercel server...");
-      const uploadResult = await uploadFile(formData);
-      console.log("Upload result:", uploadResult);
-      setResult(uploadResult);
+      console.log(
+        "Flask server URL:",
+        process.env.NEXT_PUBLIC_FLASK_SERVER_URL
+      );
 
-      if (uploadResult && uploadResult.path) {
-        console.log("Sending PDF to Flask server...");
-        console.log(
-          "Flask server URL:",
-          process.env.NEXT_PUBLIC_FLASK_SERVER_URL
-        );
-
-        // Flask 서버로 POST 요청
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_FLASK_SERVER_URL!}/process`, // NEXT_PUBLIC_LOCAL --> LOCAL로 할때
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to send PDF to Flask server");
+      // Flask 서버로 POST 요청
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_FLASK_SERVER_URL!}/process`, // NEXT_PUBLIC_LOCAL --> LOCAL로 할때
+        {
+          method: "POST",
+          body: formData,
         }
+      );
 
-        const responseData = await response.json();
-        console.log("Flask response:", responseData);
-
-        // 처리 완료 상태를 true로 설정
-        setIsProcessingComplete(true);
-      } else {
-        throw new Error("Failed to upload file");
+      if (!response.ok) {
+        throw new Error("Failed to send PDF to Flask server");
       }
+
+      const responseData = await response.json();
+      console.log("Flask response:", responseData);
+
+      // 처리 완료 상태를 true로 설정
+      setIsProcessingComplete(true);
     } catch (error) {
       console.error("Error processing the PDF:", error);
       setError("Error processing the PDF on the server.");
