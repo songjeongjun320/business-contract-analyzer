@@ -27,6 +27,7 @@ export async function OPTIONS() {
   const response = NextResponse.json({ message: "CORS preflight successful" });
   return setCorsHeaders(response);
 }
+
 // POST 요청 핸들러 (파일 처리 및 Flask 서버와의 상호작용)
 export async function POST(req: Request) {
   const origin = req.headers.get("origin");
@@ -43,23 +44,26 @@ export async function POST(req: Request) {
 
   const uploadDir = path.join(process.cwd(), "app/db/txt_results");
 
-  // 디렉토리 생성 (비동기 사용)
-  await fs.mkdir(uploadDir, { recursive: true });
+  // 디렉토리가 존재하지 않으면 생성
+  if (!fsSync.existsSync(uploadDir)) {
+    await fs.mkdir(uploadDir, { recursive: true });
+    console.log(`--Log: Created directory ${uploadDir}`);
+  }
 
   // 요청에서 FormData 추출
   const formData = await req.formData();
 
-  // FormData 순회하여 파일 저장 (비동기 사용)
+  // FormData 순회하여 .txt 파일 저장 (비동기 사용)
   await Promise.all(
     Array.from(formData.entries()).map(async ([fieldName, file]) => {
-      if (file instanceof Blob) {
-        const filename = (file as any).name || "unnamed.txt";
+      if (file instanceof Blob && fieldName.startsWith("file_")) {
+        const filename = `${fieldName}.txt`; // file_1, file_2 형태로 파일 이름 지정
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
         const filePath = path.join(uploadDir, filename);
         await fs.writeFile(filePath, buffer);
-        console.log(`--Log: Saved file ${filename}`);
+        console.log(`--Log: Saved .txt file ${filename} at ${uploadDir}`);
       }
     })
   );
@@ -240,10 +244,8 @@ async function process_groq(resultDir: string) {
     throw error;
   }
 
-  // split_txt_here 디렉토리 설정
-  const splitDir = path.join(process.cwd(), "app/db/txt_results");
-
   // 텍스트 파일들 읽기
+  const splitDir = path.join(process.cwd(), "app/db/txt_results");
   const files = await fs.readdir(splitDir);
   const textFiles = files.filter((file) => file.endsWith(".txt"));
 
@@ -290,54 +292,21 @@ async function process_groq(resultDir: string) {
 
         console.timeEnd(`Groq API 요청 시간 for ${fileName}`);
 
-        // 응답 파싱
         let jsonContent = response.choices?.[0]?.message?.content?.trim() || "";
-
-        // 응답 내용 출력
-        console.log(
-          `Groq 응답 시작 ====================================================`
-        );
-        console.log(`${fileName}:`, jsonContent);
-        console.log(
-          `Groq 응답 끝 =======================================================`
-        );
-
-        // JSON 부분만 추출
         if (jsonContent.includes("{") && jsonContent.includes("}")) {
           const startIndex = jsonContent.indexOf("{");
           const endIndex = jsonContent.lastIndexOf("}");
           jsonContent = jsonContent.substring(startIndex, endIndex + 1);
         }
 
-        let categorizedClauses;
-        try {
-          categorizedClauses = JSON.parse(jsonContent);
-          console.log("파싱된 분류 결과:", categorizedClauses);
-        } catch (error) {
-          console.error(`Groq 응답 파싱 중 오류 발생 for ${fileName}:`, error);
-          categorizedClauses = {}; // 빈 객체로 설정
-        }
+        let categorizedClauses = JSON.parse(jsonContent);
+        const resultFilePath = path.join(resultDir, "all_results.json");
 
-        // all_results.json 파일 경로
-        const resultFileName = "all_results.json";
-        const resultFilePath = path.join(resultDir, resultFileName);
+        let existingData = await fs
+          .readFile(resultFilePath, "utf-8")
+          .then(JSON.parse)
+          .catch(() => ({ high: [], medium: [], low: [] }));
 
-        let existingData: Record<string, any[]> = {};
-        try {
-          const existingFileContent = await fs.readFile(
-            resultFilePath,
-            "utf-8"
-          );
-          existingData = JSON.parse(existingFileContent);
-        } catch {
-          // 파일이 없으면 baseData를 복사하여 초기화
-          existingData = {};
-          Object.keys(baseData).forEach((key) => {
-            existingData[key] = [];
-          });
-        }
-
-        // 기존 데이터에 새로운 결과 추가
         Object.keys(categorizedClauses).forEach((key) => {
           if (Array.isArray(existingData[key])) {
             existingData[key].push(...categorizedClauses[key]);
@@ -346,75 +315,23 @@ async function process_groq(resultDir: string) {
           }
         });
 
-        // 업데이트된 결과를 JSON 파일로 저장
         await fs.writeFile(
           resultFilePath,
           JSON.stringify(existingData, null, 2)
         );
-        console.log("업데이트된 결과를 JSON 파일에 저장 완료:", resultFileName);
+        console.log(
+          "업데이트된 결과를 JSON 파일에 저장 완료:",
+          "all_results.json"
+        );
 
-        return { fileName: resultFileName, filePath: resultFilePath };
+        return { fileName, filePath };
       } catch (error) {
         console.error(`파일 처리 중 오류 발생 ${fileName}:`, error);
-        return {
-          fileName: fileName,
-          error: (error as Error).message || String(error),
-        };
+        return { fileName, error: String(error) };
       }
     })
   );
 
-  const successfulResults = results.filter((result) => !result.error);
-  const errors = results.filter((result) => result.error);
-
-  // 성공 및 오류 로그 출력
-  console.log("성공한 결과 수:", successfulResults.length);
-  console.log("오류 수:", errors.length);
-
-  // 파일 처리가 하나도 성공하지 못한 경우 예외 발생
-  if (successfulResults.length === 0) {
-    throw new Error("파일 처리가 모두 실패했습니다.");
-  }
-
-  // 최종 결과 처리 시작
-  console.log("최종 결과 처리를 시작합니다...");
-
-  // all_results.json에서 각 키를 high, medium, low로 분류하여 최종 결과에 반영
-  const allResultsPath = path.join(resultDir, "all_results.json");
-  let finalHigh: string[] = [];
-  let finalMedium: string[] = [];
-  let finalLow: string[] = [];
-
-  try {
-    const allResultsContent = await fs.readFile(allResultsPath, "utf-8");
-    const allResults = JSON.parse(allResultsContent);
-
-    // 키 값을 기준으로 각 문장을 분류하여 high, medium, low 리스트에 추가
-    Object.keys(allResults).forEach((key) => {
-      const values = allResults[key];
-      if (highItems.includes(key)) {
-        finalHigh.push(...values);
-      } else if (mediumItems.includes(key)) {
-        finalMedium.push(...values);
-      } else if (lowItems.includes(key)) {
-        finalLow.push(...values);
-      }
-    });
-
-    // final_results.json 파일을 생성 및 저장
-    const finalResults = {
-      high: finalHigh,
-      medium: finalMedium,
-      low: finalLow,
-    };
-
-    const finalResultsPath = path.join(resultDir, "final_results.json");
-    await fs.writeFile(finalResultsPath, JSON.stringify(finalResults, null, 2));
-    console.log("Final results saved to final_results.json");
-  } catch (error) {
-    console.error("Error reading or writing JSON files:", error);
-    throw error;
-  }
-
-  console.log("process_groq 함수 완료");
+  console.log("성공한 결과 수:", results.filter((r) => !r.error).length);
+  console.log("오류 수:", results.filter((r) => r.error).length);
 }
