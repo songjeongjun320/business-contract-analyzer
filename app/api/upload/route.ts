@@ -13,10 +13,22 @@ const execAsync = promisify(exec);
 const ALLOWED_ORIGIN =
   "https://b-cntrct-anlyzer-flask-server-81e4bd0c510c.herokuapp.com";
 
-export async function POST(req: Request) {
-  const uploadDir = path.join(process.cwd(), "app/db/txt_results");
+// CORS 헤더를 설정하는 함수
+const setCorsHeaders = (response: Response) => {
+  response.headers.set("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+  response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  return response;
+};
 
-  // Check for allowed origin in request headers
+// OPTIONS 핸들러 (CORS preflight 요청 처리)
+export async function OPTIONS() {
+  const response = NextResponse.json({ message: "CORS preflight successful" });
+  return setCorsHeaders(response);
+}
+
+// POST 요청 핸들러 (파일 처리 및 Flask 서버와의 상호작용)
+export async function POST(req: Request) {
   const origin = req.headers.get("origin");
   if (origin !== ALLOWED_ORIGIN) {
     return NextResponse.json(
@@ -25,44 +37,42 @@ export async function POST(req: Request) {
     );
   }
 
-  // Add CORS headers
+  // CORS 헤더 설정
   const response = NextResponse.next();
-  response.headers.set("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
-  response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  setCorsHeaders(response);
 
-  // 디렉토리가 없으면 생성
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
+  const uploadDir = path.join(process.cwd(), "app/db/txt_results");
+
+  // 디렉토리 생성 (비동기 사용)
+  await fs.mkdir(uploadDir, { recursive: true });
 
   // 요청에서 FormData 추출
   const formData = await req.formData();
 
-  // FormData 순회
-  for (const [fieldName, file] of formData.entries()) {
-    if (file instanceof Blob) {
-      // 파일명 가져오기
-      const filename = (file as any).name || "unnamed.txt";
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+  // FormData 순회하여 파일 저장 (비동기 사용)
+  await Promise.all(
+    Array.from(formData.entries()).map(async ([fieldName, file]) => {
+      if (file instanceof Blob) {
+        const filename = (file as any).name || "unnamed.txt";
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
-      // 파일 저장 경로 설정
-      const filePath = path.join(uploadDir, filename);
+        const filePath = path.join(uploadDir, filename);
+        await fs.writeFile(filePath, buffer);
+        console.log(`--Log: Saved file ${filename}`);
+      }
+    })
+  );
 
-      // 파일 저장
-      fs.writeFileSync(filePath, buffer);
-
-      console.log(`--Log: Saved file ${filename}`);
-    }
-  }
-
-  // Here is the logic for sending weights.xlsx to Flask server
+  // weights.xlsx 파일을 Flask 서버로 전송하는 로직
   try {
-    // Rest of your code follows as usual...
     const weightsFilePath = path.join(process.cwd(), "app/db/weights.xlsx");
 
-    if (!fs.existsSync(weightsFilePath)) {
+    const fileExists = await fs
+      .access(weightsFilePath)
+      .then(() => true)
+      .catch(() => false);
+    if (!fileExists) {
       console.error("--Log: weights.xlsx 파일이 존재하지 않습니다.");
       return NextResponse.json(
         { error: "weights.xlsx 파일이 존재하지 않습니다." },
@@ -70,50 +80,45 @@ export async function POST(req: Request) {
       );
     }
 
-    // FormData 생성 및 요청 옵션 설정
     const form = new FormData();
-    form.append("file", fs.createReadStream(weightsFilePath), {
+    form.append("file", await fs.readFile(weightsFilePath), {
       filename: "weights.xlsx",
       contentType:
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 
     const flaskUrl =
-      "https://b-cntrct-anlyzer-flask-server-81e4bd0c510c.herokuapp.com//model_weight";
-    const response = await fetch(flaskUrl, {
+      "https://b-cntrct-anlyzer-flask-server-81e4bd0c510c.herokuapp.com/model_weight";
+    const responseFromFlask = await fetch(flaskUrl, {
       method: "POST",
       body: form as any,
       headers: form.getHeaders(),
     });
 
-    const result = await response.json();
+    const result = await responseFromFlask.json();
 
-    if (response.ok) {
+    if (responseFromFlask.ok) {
       console.log(
         "--Log: weights.xlsx 파일을 Flask 서버로 성공적으로 전송했습니다."
       );
 
-      // 결과를 처리하여 JSON 파일 생성
       const dbDir = path.join(process.cwd(), "app/db");
-      // result 디렉토리 이름 결정
-      const resultDir = getNextResultDir(dbDir);
+      const resultDir = await getNextResultDir(dbDir);
 
-      // 디렉토리 생성
-      fs.mkdirSync(resultDir, { recursive: true });
+      // 디렉토리 생성 및 파일 작성 (비동기 사용)
+      await fs.mkdir(resultDir, { recursive: true });
       console.log(`--Log: Created result directory: ${resultDir}`);
 
-      // all_items에서 키를 생성하여 빈 배열을 값으로 하는 객체 생성
-      const allItems = result.all_items; // 리스트 형태
+      const allResultsData = result.all_items.reduce(
+        (acc: { [key: string]: any[] }, item: string) => {
+          acc[item] = [];
+          return acc;
+        },
+        {}
+      );
 
-      const allResultsData: { [key: string]: any[] } = {};
-      allItems.forEach((item: string) => {
-        allResultsData[item] = [];
-      });
-
-      // all_results.json 및 base_data.json 파일 저장
-      const allResultsPath = path.join(resultDir, "all_results.json");
-      fs.writeFileSync(
-        allResultsPath,
+      await fs.writeFile(
+        path.join(resultDir, "all_results.json"),
         JSON.stringify(allResultsData, null, 2),
         "utf-8"
       );
@@ -125,30 +130,22 @@ export async function POST(req: Request) {
         low: result.low_toxicity_items || [],
       };
 
-      const baseDataPath = path.join(resultDir, "base_data.json");
-      fs.writeFileSync(
-        baseDataPath,
+      await fs.writeFile(
+        path.join(resultDir, "base_data.json"),
         JSON.stringify(baseData, null, 2),
         "utf-8"
       );
       console.log("--Log: Created base_data.json");
 
-      // final_results.json 파일 생성
-      const finalResultsData = {
-        high: [],
-        medium: [],
-        low: [],
-      };
-
-      const finalResultsPath = path.join(resultDir, "final_results.json");
-      fs.writeFileSync(
-        finalResultsPath,
+      const finalResultsData = { high: [], medium: [], low: [] };
+      await fs.writeFile(
+        path.join(resultDir, "final_results.json"),
         JSON.stringify(finalResultsData, null, 2),
         "utf-8"
       );
       console.log("--Log: Created final_results.json");
 
-      // 여기에서 process_groq 함수를 실행합니다.
+      // process_groq 함수 실행
       try {
         await process_groq(resultDir);
         console.log("--Log: process_groq 함수 실행 완료");
@@ -157,7 +154,7 @@ export async function POST(req: Request) {
         return NextResponse.json(
           {
             error: "process_groq 함수 실행 중 오류 발생",
-            details: (error as Error).message || String(error),
+            details: String(error),
           },
           { status: 500 }
         );
