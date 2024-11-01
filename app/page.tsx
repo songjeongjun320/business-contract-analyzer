@@ -38,15 +38,15 @@ export default function Home() {
     formData.append("file", file);
 
     try {
-      // console.log(
-      //   "Flask server URL:",
-      //   process.env.NEXT_PUBLIC_FLASK_SERVER_URL
-      // );
+      console.log(
+        "Flask server URL:",
+        process.env.NEXT_PUBLIC_FLASK_SERVER_URL
+      );
       console.log("Local server URL:", process.env.NEXT_PUBLIC_LOCAL);
 
       const response = await fetch(
-        // `${process.env.NEXT_PUBLIC_FLASK_SERVER_URL!}/process`, // NEXT_PUBLIC_LOCAL
-        `${process.env.NEXT_PUBLIC_LOCAL!}/process`,
+        `${process.env.NEXT_PUBLIC_FLASK_SERVER_URL!}/process`, // NEXT_PUBLIC_LOCAL
+        // `${process.env.NEXT_PUBLIC_LOCAL!}/process`,
         {
           method: "POST",
           body: formData,
