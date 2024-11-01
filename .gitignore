@@ -48,3 +48,9 @@ lib
 venv
 
 .venv
+
+# db/result 폴더 안의 모든 파일 무시
+db/result/*
+
+# db/result 폴더 자체는 추적
+!db/result/
