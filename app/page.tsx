@@ -78,7 +78,7 @@ export default function Home() {
   // 중복 방지 파일 저장 함수
   let result_file_path = "";
   const saveFileWithUniqueName = async (basePath: string, data: any) => {
-    const response = await fetch("/api/users/saveFileWithUniqueName", {
+    const response = await fetch("/api/saveFileWithUniqueName", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
