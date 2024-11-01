@@ -1,0 +1,16 @@
+{
+  "high": [
+    "Subcontractor shall be liable for the associated expenses.",
+    "Subcontractor cannot submit a payment request for changed or extra work until a Change Order for the work has been executed by the General Contractor and Subcontractor."
+  ],
+  "low": [
+    "Subcontractor and its sureties shall defend, indemnify and hold harmless Contractor from and against any damages, penalties, or costs of any nature arising out of Subcontractor's failure to comply with such laws, or failure of Subcontractor's employees, agents, representatives, sub-subcontractors or suppliers to so comply.",
+    "Subcontractor and its sureties shall defend, indemnify and hold harmless Contractor from and against any damages, penalties, or costs of any nature arising out of Subcontractor's failure to comply with such laws, or failure of Subcontractor's employees, agents, representatives, sub-subcontractors or suppliers to so comply.",
+    "In the event General Contractor and Subcontractor cannot agree on whether or not the work is changed or extra work, or on the value of or time impact as a result of changed or extra work, or if Subcontractor is directed to proceed with changed or extra work prior to issuance of a change order, Subcontractor shall proceed with and timely prosecute the work as directed by General Contractor.",
+    "In the event of any dispute, controversy, or claim for additional compensation or time extension, Subcontractor shall provide the General Contractor with written notice no later than five (5) days from the occurrence of the event on which the claim is made."
+  ],
+  "medium": [
+    "Subcontractor and its sureties shall defend, indemnify and hold harmless Contractor from and against any damages, penalties, or costs of any nature arising out of Subcontractor's failure to comply with such laws, or failure of Subcontractor's employees, agents, representatives, sub-subcontractors or suppliers to so comply.",
+    "Failure to promptly return (no later than 14 days from the date of issuance) the executed Subcontract Change Order may result in withholding of progress payments for the changed work, at the General Contractor's sole discretion."
+  ]
+}

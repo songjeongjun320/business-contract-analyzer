@@ -38,15 +38,15 @@ export default function Home() {
     formData.append("file", file);
 
     try {
-      // 파일 업로드
-      console.log(
-        "Flask server URL:",
-        process.env.NEXT_PUBLIC_FLASK_SERVER_URL
-      );
+      // console.log(
+      //   "Flask server URL:",
+      //   process.env.NEXT_PUBLIC_FLASK_SERVER_URL
+      // );
+      console.log("Local server URL:", process.env.NEXT_PUBLIC_LOCAL);
 
-      // Flask 서버로 POST 요청
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_FLASK_SERVER_URL!}/process`, // NEXT_PUBLIC_LOCAL --> LOCAL로 할때
+        // `${process.env.NEXT_PUBLIC_FLASK_SERVER_URL!}/process`, // NEXT_PUBLIC_LOCAL
+        `${process.env.NEXT_PUBLIC_LOCAL!}/process`,
         {
           method: "POST",
           body: formData,
@@ -57,10 +57,14 @@ export default function Home() {
         throw new Error("Failed to send PDF to Flask server");
       }
 
-      const responseData = await response.json();
-      console.log("Flask response:", responseData);
+      // 받아온 final_results.json 파일 처리
+      const blob = await response.blob();
+      const finalResultsData = await blob.text(); // 텍스트로 변환
 
-      // 처리 완료 상태를 true로 설정
+      // 저장 경로 설정
+      const savePath = "/app/db/result/final_results.json";
+      await saveFileWithUniqueName(savePath, finalResultsData); // 고유 이름 설정 함수 호출
+
       setIsProcessingComplete(true);
     } catch (error) {
       console.error("Error processing the PDF:", error);
@@ -68,6 +72,28 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 중복 방지 파일 저장 함수
+  let result_file_path = "";
+  const saveFileWithUniqueName = async (basePath: string, data: any) => {
+    const response = await fetch("/api/saveFileWithUniqueName", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ basePath, data }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to save file with unique name");
+    }
+
+    // JSON 응답에서 파일 경로와 메시지를 추출
+    const result = await response.json();
+
+    // 필요에 따라 경로를 사용할 수 있음
+    result_file_path = result.filePath;
   };
 
   const handleCheckResult = () => {
@@ -174,17 +200,6 @@ export default function Home() {
           >
             <strong className="font-bold">Error:</strong>
             <span className="block sm:inline"> {error}</span>
-          </div>
-        )}
-        {/* 결과 표시 섹션 */}
-        {result && (
-          <div className="bg-white shadow-lg rounded-xl p-8 mt-12">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-              Processing Result
-            </h2>
-            <p className="mb-4 text-gray-700">File uploaded: {result.path}</p>
-            <p className="mb-4 text-gray-700">File ID: {result.id}</p>
-            <p className="mb-4 text-gray-700">Full Path: {result.fullPath}</p>
           </div>
         )}
       </div>

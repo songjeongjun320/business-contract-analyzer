@@ -6,25 +6,26 @@ import path from "path";
 const BASE_DIRECTORY =
   process.env.NODE_ENV === "production"
     ? "/tmp"
-    : path.join(process.cwd(), "app/db");
+    : path.join(process.cwd(), "app/db/result");
 
-// 가장 최신의 result 디렉토리 찾기 함수
-async function getLatestResultDirectory(baseDir: string) {
+// 가장 최신의 final_results 파일 찾기 함수
+async function getLatestFinalResultsFile(baseDir: string) {
   try {
-    const directories = await fs.readdir(baseDir, { withFileTypes: true });
-    const resultDirs = directories
-      .filter((dir) => dir.isDirectory() && dir.name.startsWith("result"))
-      .map((dir) => ({
-        name: dir.name,
-        num: parseInt(dir.name.replace("result", "")) || 0,
+    const files = await fs.readdir(baseDir);
+    const resultFiles = files
+      .filter((file) => file.startsWith("final_results"))
+      .map((file) => ({
+        name: file,
+        num:
+          parseInt(file.replace("final_results", "").replace(".json", "")) || 0,
       }))
       .sort((a, b) => b.num - a.num);
 
-    return resultDirs.length > 0
-      ? path.join(baseDir, resultDirs[0].name)
+    return resultFiles.length > 0
+      ? path.join(baseDir, resultFiles[0].name)
       : null;
   } catch (error) {
-    console.error("Failed to read directories:", error);
+    console.error("Failed to read files:", error);
     return null;
   }
 }
@@ -43,22 +44,20 @@ function removeEmptyValues(jsonData: any) {
 
 export async function GET() {
   try {
-    const latestResultDir = await getLatestResultDirectory(BASE_DIRECTORY);
+    const latestResultFile = await getLatestFinalResultsFile(BASE_DIRECTORY);
 
-    if (!latestResultDir) {
-      console.error("No result directories found.");
+    if (!latestResultFile) {
+      console.error("No result files found.");
       return NextResponse.json(
-        { error: "No result directories found" },
+        { error: "No result files found" },
         { status: 404 }
       );
     }
 
-    const jsonFilePath = path.join(latestResultDir, "final_results.json");
-
-    console.log("Attempting to read JSON file from: ", jsonFilePath);
+    console.log("Attempting to read JSON file from: ", latestResultFile);
 
     // JSON 파일을 읽고 그 내용을 반환
-    const jsonData = await fs.readFile(jsonFilePath, "utf-8");
+    const jsonData = await fs.readFile(latestResultFile, "utf-8");
     const parsedData = JSON.parse(jsonData);
     console.log("Parsed Data:", parsedData);
 
@@ -68,7 +67,7 @@ export async function GET() {
     // 프로덕션 환경에서는 파일 쓰기를 하지 않습니다.
     if (process.env.NODE_ENV !== "production") {
       await fs.writeFile(
-        jsonFilePath,
+        latestResultFile,
         JSON.stringify(cleanedData, null, 2),
         "utf-8"
       );
