@@ -14,9 +14,17 @@ export async function POST(req: Request) {
   console.log("Directory for saving file:", tmpDir);
 
   // 디렉토리가 없으면 생성
-  if (!fs.existsSync(tmpDir)) {
-    fs.mkdirSync(tmpDir, { recursive: true });
-    console.log("Directory created:", tmpDir);
+  try {
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true });
+      console.log("Directory created:", tmpDir);
+    }
+  } catch (error) {
+    console.error("Error creating directory:", error);
+    return NextResponse.json(
+      { error: "Failed to create directory" },
+      { status: 500 }
+    );
   }
 
   // 초기 파일 경로 설정
@@ -33,6 +41,8 @@ export async function POST(req: Request) {
 
   // 파일 저장
   try {
+    console.log("Data to be saved:", data);
+    console.log("Final file path:", filePath);
     fs.writeFileSync(filePath, data, "utf8");
     console.log("File saved successfully at:", filePath);
     return NextResponse.json({ message: "File saved successfully", filePath });
