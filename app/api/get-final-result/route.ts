@@ -11,7 +11,9 @@ const BASE_DIRECTORY =
 // 가장 최신의 final_results 파일 찾기 함수
 async function getLatestFinalResultsFile(baseDir: string) {
   try {
+    console.log("Reading files from directory:", baseDir); // 추가된 로그
     const files = await fs.readdir(baseDir);
+    console.log("Files found:", files); // 추가된 로그
     const resultFiles = files
       .filter((file) => file.startsWith("final_results"))
       .map((file) => ({
@@ -21,9 +23,13 @@ async function getLatestFinalResultsFile(baseDir: string) {
       }))
       .sort((a, b) => b.num - a.num);
 
-    return resultFiles.length > 0
-      ? path.join(baseDir, resultFiles[0].name)
-      : null;
+    if (resultFiles.length > 0) {
+      console.log("Latest result file determined:", resultFiles[0].name); // 추가된 로그
+      return path.join(baseDir, resultFiles[0].name);
+    } else {
+      console.warn("No matching result files found."); // 추가된 로그
+      return null;
+    }
   } catch (error) {
     console.error("Failed to read files:", error);
     return null;
@@ -44,6 +50,7 @@ function removeEmptyValues(jsonData: any) {
 
 export async function GET() {
   try {
+    console.log("Attempting to get the latest result file..."); // 추가된 로그
     const latestResultFile = await getLatestFinalResultsFile(BASE_DIRECTORY);
 
     if (!latestResultFile) {
@@ -54,15 +61,16 @@ export async function GET() {
       );
     }
 
-    console.log("Attempting to read JSON file from: ", latestResultFile);
+    console.log("Attempting to read JSON file from:", latestResultFile); // 추가된 로그
 
     // JSON 파일을 읽고 그 내용을 반환
     const jsonData = await fs.readFile(latestResultFile, "utf-8");
+    console.log("Raw JSON data read from file:", jsonData); // 추가된 로그
     const parsedData = JSON.parse(jsonData);
-    console.log("Parsed Data:", parsedData);
+    console.log("Parsed Data:", parsedData); // 추가된 로그
 
     const cleanedData = removeEmptyValues(parsedData);
-    console.log("Cleaned Data:", cleanedData);
+    console.log("Cleaned Data:", cleanedData); // 추가된 로그
 
     // 프로덕션 환경에서는 파일 쓰기를 하지 않습니다.
     if (process.env.NODE_ENV !== "production") {
@@ -71,6 +79,7 @@ export async function GET() {
         JSON.stringify(cleanedData, null, 2),
         "utf-8"
       );
+      console.log("Updated cleaned data written to file:", latestResultFile); // 추가된 로그
     }
 
     return NextResponse.json(cleanedData);
