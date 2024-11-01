@@ -37,6 +37,7 @@ export default function Home() {
     const formData = new FormData();
     formData.append("file", file);
 
+    // REDIRECT URL = jeongjunsong.com
     try {
       console.log(
         "Flask server URL:",
