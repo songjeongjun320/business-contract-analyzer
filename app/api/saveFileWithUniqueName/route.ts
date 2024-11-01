@@ -7,25 +7,26 @@ export async function POST(req: Request) {
   const { data } = await req.json();
   console.log("Received request:", { data });
 
-  // 기본 파일 이름과 폴더 경로 설정
-  const baseDir = path.resolve(process.cwd(), "app/db/result");
+  // Vercel의 임시 디렉토리 경로 설정
+  const isVercel = process.env.VERCEL_ENV === "production";
+  const tmpDir = isVercel ? "/tmp" : path.resolve(process.cwd(), "tmp"); // 로컬에서 tmp 디렉토리 사용
   const baseFileName = "final_results.json";
-  console.log("Base directory:", baseDir);
+  console.log("Directory for saving file:", tmpDir);
 
   // 디렉토리가 없으면 생성
-  if (!fs.existsSync(baseDir)) {
-    fs.mkdirSync(baseDir, { recursive: true });
-    console.log("Directory created:", baseDir);
+  if (!fs.existsSync(tmpDir)) {
+    fs.mkdirSync(tmpDir, { recursive: true });
+    console.log("Directory created:", tmpDir);
   }
 
   // 초기 파일 경로 설정
-  let filePath = path.resolve(baseDir, baseFileName);
+  let filePath = path.join(tmpDir, baseFileName);
   let count = 1;
 
   // 파일 이름 중복 방지
   while (fs.existsSync(filePath)) {
     console.log(`File ${filePath} exists, generating new file path...`);
-    filePath = path.resolve(baseDir, `final_results${count}.json`);
+    filePath = path.join(tmpDir, `final_results${count}.json`);
     console.log("New file path:", filePath);
     count++;
   }
