@@ -40,12 +40,12 @@ export default function Home() {
     try {
       console.log(
         "Flask server URL:",
-        process.env.NEXT_PUBLIC_FLASK_SERVER_URL
+        process.env.NEXT_PUBLIC_FLASK_REDIRECT_URL
       );
       // console.log("Local server URL:", process.env.NEXT_PUBLIC_LOCAL);
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_FLASK_SERVER_URL!}/process`, // NEXT_PUBLIC_LOCAL
+        `${process.env.NEXT_PUBLIC_FLASK_REDIRECT_URL!}/process`, // NEXT_PUBLIC_LOCAL
         // `${process.env.NEXT_PUBLIC_LOCAL!}/process`,
         {
           method: "POST",
