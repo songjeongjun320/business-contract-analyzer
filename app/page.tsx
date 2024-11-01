@@ -42,7 +42,7 @@ export default function Home() {
         "Flask server URL:",
         process.env.NEXT_PUBLIC_FLASK_SERVER_URL
       );
-      console.log("Local server URL:", process.env.NEXT_PUBLIC_LOCAL);
+      // console.log("Local server URL:", process.env.NEXT_PUBLIC_LOCAL);
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_FLASK_SERVER_URL!}/process`, // NEXT_PUBLIC_LOCAL
