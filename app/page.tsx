@@ -1,5 +1,7 @@
 "use client";
 
+// Without GROQ
+
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
