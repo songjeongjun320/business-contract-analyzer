@@ -1,7 +1,11 @@
 {
   "functions": {
-    "app/api/**/route.ts": {
-      "memory": 1024,
+    "api/get-final-result/route.ts": {
+      "memory": 512,
+      "maxDuration": 10
+    },
+    "api/saveFileWithUniqueName/route.ts": {
+      "memory": 512,
       "maxDuration": 10
     }
   }
