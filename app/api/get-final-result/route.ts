@@ -49,10 +49,10 @@ function removeEmptyValues(jsonData: any) {
 }
 
 export async function GET() {
-  try {
-    console.log("Attempting to get the latest result file..."); // 추가된 로그
-    const latestResultFile = await getLatestFinalResultsFile(BASE_DIRECTORY);
+  console.log("GET request received for final results.");
 
+  try {
+    const latestResultFile = await getLatestFinalResultsFile(BASE_DIRECTORY);
     if (!latestResultFile) {
       console.error("No result files found.");
       return NextResponse.json(
@@ -61,25 +61,21 @@ export async function GET() {
       );
     }
 
-    console.log("Attempting to read JSON file from:", latestResultFile); // 추가된 로그
-
-    // JSON 파일을 읽고 그 내용을 반환
+    console.log("Attempting to read JSON file from: ", latestResultFile);
     const jsonData = await fs.readFile(latestResultFile, "utf-8");
-    console.log("Raw JSON data read from file:", jsonData); // 추가된 로그
     const parsedData = JSON.parse(jsonData);
-    console.log("Parsed Data:", parsedData); // 추가된 로그
+    console.log("Parsed Data:", parsedData);
 
     const cleanedData = removeEmptyValues(parsedData);
-    console.log("Cleaned Data:", cleanedData); // 추가된 로그
+    console.log("Cleaned Data:", cleanedData);
 
-    // 프로덕션 환경에서는 파일 쓰기를 하지 않습니다.
     if (process.env.NODE_ENV !== "production") {
       await fs.writeFile(
         latestResultFile,
         JSON.stringify(cleanedData, null, 2),
         "utf-8"
       );
-      console.log("Updated cleaned data written to file:", latestResultFile); // 추가된 로그
+      console.log("Updated cleaned data written to file.");
     }
 
     return NextResponse.json(cleanedData);
