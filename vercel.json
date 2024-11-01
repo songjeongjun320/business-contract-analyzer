@@ -1,13 +1,8 @@
 {
   "functions": {
-    "api/upload/route.ts": {
-      "runtime": "@vercel/node@2.0.0"
-    }
-  },
-  "routes": [{ "src": "/api/upload", "dest": "api/upload/route.ts" }],
-  "build": {
-    "env": {
-      "PYTHONPATH": "/var/task"
+    "app/api/**/route.ts": {
+      "memory": 512,
+      "maxDuration": 10
     }
   }
 }
