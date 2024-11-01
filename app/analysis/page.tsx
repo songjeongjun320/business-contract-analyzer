@@ -27,7 +27,7 @@ export default function AnalysisPage() {
   useEffect(() => {
     const fetchAnalysisData = async () => {
       try {
-        const response = await fetch("/api/get-final-result");
+        const response = await fetch("/api/users/get-final-result");
         if (!response.ok) {
           throw new Error("Failed to fetch analysis data");
         }
