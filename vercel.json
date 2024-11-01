@@ -1,12 +1,8 @@
 {
   "functions": {
-    "api/get-final-result/route.ts": {
-      "memory": 512,
-      "maxDuration": 10
-    },
-    "api/saveFileWithUniqueName/route.ts": {
-      "memory": 512,
-      "maxDuration": 10
+    "api/**/*/route.ts": {
+      "maxDuration": 30,
+      "memory": 1024
     }
   }
 }
