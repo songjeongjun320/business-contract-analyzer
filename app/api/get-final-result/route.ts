@@ -5,8 +5,8 @@ import path from "path";
 // 환경에 따른 기본 디렉토리 설정
 const BASE_DIRECTORY =
   process.env.NODE_ENV === "production"
-    ? "/tmp"
-    : path.join(process.cwd(), "app/db/result");
+    ? "/tmp" // Vercel의 임시 디렉토리
+    : path.join(process.cwd(), "app/db/result"); // 로컬 환경의 기본 디렉토리
 
 // 가장 최신의 final_results 파일 찾기 함수
 async function getLatestFinalResultsFile(baseDir: string) {
