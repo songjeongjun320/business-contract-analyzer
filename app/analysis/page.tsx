@@ -23,15 +23,20 @@ export default function AnalysisPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 데이터 로드 상태를 로그로 확인
+  console.log("AnalysisPage component has rendered");
+
   // 데이터를 가져오는 함수
   useEffect(() => {
     const fetchAnalysisData = async () => {
+      console.log("Starting to fetch analysis data..."); // 데이터 가져오기 시작 로그
       try {
-        const response = await fetch("../api/get-final-result");
+        const response = await fetch("/api/get-final-result");
         if (!response.ok) {
           throw new Error("Failed to fetch analysis data");
         }
         const data = await response.json();
+        console.log("Fetched analysis data:", data); // 데이터 성공적으로 가져온 경우 로그
         setResult(data);
       } catch (error) {
         console.error("Error fetching analysis data:", error);
@@ -45,6 +50,7 @@ export default function AnalysisPage() {
   }, []);
 
   if (loading) {
+    console.log("Loading data..."); // 로딩 중 상태 로그
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <p className="text-xl font-semibold text-gray-600">Loading...</p>
@@ -53,6 +59,7 @@ export default function AnalysisPage() {
   }
 
   if (error) {
+    console.log("Error occurred:", error); // 오류 상태 로그
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <p className="text-xl font-semibold text-red-600">{error}</p>
@@ -61,6 +68,7 @@ export default function AnalysisPage() {
   }
 
   if (!result) {
+    console.log("No results available."); // 결과가 없는 상태 로그
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <p className="text-xl font-semibold text-red-600">
@@ -98,6 +106,7 @@ export default function AnalysisPage() {
   ];
 
   const downloadPDF = () => {
+    console.log("Download PDF button clicked"); // PDF 다운로드 클릭 로그
     const doc = new jsPDF();
     doc.text("Contract Analysis Result", 10, 10);
     sections.forEach((section, index) => {
@@ -126,7 +135,6 @@ export default function AnalysisPage() {
             Download PDF
           </button>
         </div>
-        {/* 세로로 배치되도록 */}
         <div className="flex flex-col gap-6">
           {sections
             .sort((a, b) => {
@@ -141,7 +149,10 @@ export default function AnalysisPage() {
               <div
                 key={index}
                 className={`p-8 rounded-lg shadow-md ${section.bgColor} cursor-pointer transition-all duration-300 hover:shadow-lg`}
-                onClick={() => setExpandedSection(section.title)}
+                onClick={() => {
+                  console.log(`Section "${section.title}" clicked`); // 섹션 클릭 로그
+                  setExpandedSection(section.title);
+                }}
               >
                 <h2
                   className={`mb-3 text-xl font-semibold ${section.textColor}`}
@@ -174,13 +185,16 @@ export default function AnalysisPage() {
       {expandedSection && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-          onClick={() => setExpandedSection(null)}
+          onClick={() => {
+            console.log("Expanded section closed"); // 팝업 닫기 로그
+            setExpandedSection(null);
+          }}
         >
           <div
             className={`w-full max-w-2xl p-6 rounded-lg shadow-xl bg-white relative overflow-y-auto ${
               sections.find((s) => s.title === expandedSection)?.bgColor
             }`}
-            style={{ maxHeight: "90vh" }} // 팝업 창의 최대 높이를 90vh로 설정하여 더 많은 공간을 차지하도록 수정합니다.
+            style={{ maxHeight: "90vh" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
