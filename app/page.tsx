@@ -15,8 +15,8 @@ export default function Home() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setFile(event.target.files[0]);
-      setIsProcessingComplete(false); // 새로운 파일을 선택하면 처리 완료 상태를 초기화
-      setError(null); // 에러 메시지 초기화
+      setIsProcessingComplete(false);
+      setError(null);
       console.log("File selected:", event.target.files[0].name);
     }
   };
@@ -37,39 +37,49 @@ export default function Home() {
     const formData = new FormData();
     formData.append("file", file);
 
-    // REDIRECT URL = jeongjunsong.com
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 600000); // 10분 타임아웃
+
     try {
       console.log(
         "Flask server URL:",
         process.env.NEXT_PUBLIC_FLASK_REDIRECT_URL
       );
-      // console.log("Local server URL:", process.env.NEXT_PUBLIC_LOCAL);
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_FLASK_REDIRECT_URL!}/process`, // NEXT_PUBLIC_LOCAL
-        // `${process.env.NEXT_PUBLIC_LOCAL!}/process`,
+        `${process.env.NEXT_PUBLIC_FLASK_REDIRECT_URL!}/process`,
         {
           method: "POST",
           body: formData,
+          signal: controller.signal,
         }
       );
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error("Failed to send PDF to Flask server");
       }
 
-      // 받아온 final_results.json 파일 처리
       const blob = await response.blob();
-      const finalResultsData = await blob.text(); // 텍스트로 변환
+      const finalResultsData = await blob.text();
 
-      // 저장 경로 설정
       const savePath = "/app/db/result/final_results.json";
-      await saveFileWithUniqueName(savePath, finalResultsData); // 고유 이름 설정 함수 호출
+      await saveFileWithUniqueName(savePath, finalResultsData);
 
       setIsProcessingComplete(true);
     } catch (error) {
       console.error("Error processing the PDF:", error);
-      setError("Error processing the PDF on the server.");
+      if (error instanceof Error) {
+        if (error.name === "AbortError") {
+          console.error("Request timed out after 10 minutes");
+          alert("Request timed out after 10 minutes. Please try again.");
+        } else {
+          throw error;
+        }
+      } else {
+        console.error("An unknown error occurred:", error);
+      }
     } finally {
       setIsLoading(false);
     }
