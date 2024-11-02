@@ -8,12 +8,22 @@ const BASE_DIRECTORY =
     ? "/tmp" // Vercel의 임시 디렉토리
     : path.join(process.cwd(), "app/db/result"); // 로컬 환경의 기본 디렉토리
 
+console.log("BASE_DIRECTORY set to:", BASE_DIRECTORY);
+console.log("Current NODE_ENV:", process.env.NODE_ENV);
+console.log("Current working directory:", process.cwd());
+
 // 가장 최신의 final_results 파일 찾기 함수
 async function getLatestFinalResultsFile(baseDir: string) {
   try {
-    console.log("Reading files from directory:", baseDir); // 추가된 로그
+    console.log("Reading files from directory:", baseDir);
     const files = await fs.readdir(baseDir);
-    console.log("Files found:", files); // 추가된 로그
+    console.log("Files found:", files);
+
+    if (files.length === 0) {
+      console.warn("Directory is empty.");
+      return null;
+    }
+
     const resultFiles = files
       .filter((file) => file.startsWith("final_results"))
       .map((file) => ({
@@ -23,15 +33,22 @@ async function getLatestFinalResultsFile(baseDir: string) {
       }))
       .sort((a, b) => b.num - a.num);
 
+    console.log("Filtered result files:", resultFiles);
+
     if (resultFiles.length > 0) {
-      console.log("Latest result file determined:", resultFiles[0].name); // 추가된 로그
+      console.log("Latest result file determined:", resultFiles[0].name);
       return path.join(baseDir, resultFiles[0].name);
     } else {
-      console.warn("No matching result files found."); // 추가된 로그
+      console.warn("No matching result files found.");
       return null;
     }
   } catch (error) {
     console.error("Failed to read files:", error);
+    if (error instanceof Error) {
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
     return null;
   }
 }
@@ -50,6 +67,7 @@ function removeEmptyValues(jsonData: any) {
 
 export async function GET() {
   console.log("GET request received for final results.");
+  console.log("Current timestamp:", new Date().toISOString());
 
   try {
     const latestResultFile = await getLatestFinalResultsFile(BASE_DIRECTORY);
@@ -61,8 +79,10 @@ export async function GET() {
       );
     }
 
-    console.log("Attempting to read JSON file from: ", latestResultFile);
+    console.log("Attempting to read JSON file from:", latestResultFile);
     const jsonData = await fs.readFile(latestResultFile, "utf-8");
+    console.log("Raw JSON data:", jsonData);
+
     const parsedData = JSON.parse(jsonData);
     console.log("Parsed Data:", parsedData);
 
@@ -70,17 +90,26 @@ export async function GET() {
     console.log("Cleaned Data:", cleanedData);
 
     if (process.env.NODE_ENV !== "production") {
+      const updatedFilePath = path.join(
+        BASE_DIRECTORY,
+        `updated_${path.basename(latestResultFile)}`
+      );
       await fs.writeFile(
-        latestResultFile,
+        updatedFilePath,
         JSON.stringify(cleanedData, null, 2),
         "utf-8"
       );
-      console.log("Updated cleaned data written to file.");
+      console.log("Updated cleaned data written to file:", updatedFilePath);
     }
 
     return NextResponse.json(cleanedData);
   } catch (error) {
     console.error("Failed to read or parse the JSON file:", error);
+    if (error instanceof Error) {
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
     return NextResponse.json(
       { error: "Failed to read or parse the JSON file" },
       { status: 500 }
