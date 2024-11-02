@@ -30,8 +30,8 @@ export default function AnalysisPage() {
   useEffect(() => {
     const fetchAnalysisData = async () => {
       console.log("Starting to fetch analysis data..."); // 데이터 가져오기 시작 로그
+      const response = await fetch("/api/get-final-result");
       try {
-        const response = await fetch("/api/get-final-result");
         if (!response.ok) {
           throw new Error("Failed to fetch analysis data");
         }
@@ -44,6 +44,7 @@ export default function AnalysisPage() {
         setResult(null);
       } finally {
         setLoading(false);
+        console.log(response);
       }
     };
     fetchAnalysisData();
@@ -139,9 +140,9 @@ export default function AnalysisPage() {
           {sections
             .sort((a, b) => {
               const order: { [key: string]: number } = {
-                "Critical Attention Required": 1,
-                "Moderate Attention Advised": 2,
-                "Low Risk, High Protection": 3,
+                "High Risk": 1,
+                "Moderate Risk": 2,
+                "Low Risk": 3,
               };
               return order[a.title] - order[b.title];
             })
