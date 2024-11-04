@@ -2,80 +2,77 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Upload, CheckCircle } from "lucide-react";
-import { uploadFile } from "@/actions/storageActions";
+import {
+  FileText,
+  Upload,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+} from "lucide-react";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isProcessingComplete, setIsProcessingComplete] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setFile(event.target.files[0]);
-      setIsProcessingComplete(false); // 새로운 파일을 선택하면 처리 완료 상태를 초기화
-      setError(null); // 에러 메시지 초기화
     }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-
-    if (!file || file.type !== "application/pdf") {
-      alert("Please upload a valid PDF file.");
-      return;
-    }
-
     setIsLoading(true);
-    setError(null);
-    setResult(null);
-    setIsProcessingComplete(false);
 
-    const formData = new FormData();
-    formData.append("file", file);
+    if (file && file.type === "application/pdf") {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("fileName", file.name); // 파일 이름을 추가
 
-    try {
-      // 파일 업로드
-      const uploadResult = await uploadFile(formData);
-      setResult(uploadResult);
+      try {
+        const uploadResponse = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
 
-      if (uploadResult && uploadResult.path) {
-        console.log("Sending PDF to Flask server...");
-
-        // Flask 서버로 POST 요청
-        const response = await fetch(
-          "https://b-cntrct-anlyzer-flask-server-81e4bd0c510c.herokuapp.com/process",
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to send PDF to Flask server");
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed: ${await uploadResponse.text()}`);
         }
 
-        const responseData = await response.json();
-        console.log("Flask response:", responseData);
+        const uploadResult = await uploadResponse.json();
 
-        // 처리 완료 상태를 true로 설정
-        setIsProcessingComplete(true);
-      } else {
-        throw new Error("Failed to upload file");
+        const groqResponse = await fetch("/api/process-groq", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ pages: uploadResult.results }),
+        });
+
+        if (!groqResponse.ok) {
+          const errorData = await groqResponse.json();
+          throw new Error(`Groq processing failed: ${errorData.error}`);
+        }
+
+        const groqResult = await groqResponse.json();
+
+        if (groqResult.results && groqResult.results.length > 0) {
+          const jsonFilePath = groqResult.results[0].filePath;
+          router.push(`/analysis?jsonPath=${encodeURIComponent(jsonFilePath)}`);
+        } else {
+          throw new Error("No pages were successfully processed");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert(error instanceof Error ? error.message : "An error occurred");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Error processing the PDF:", error);
-      setError("Error processing the PDF on the server.");
-    } finally {
+    } else {
+      alert("Please upload a valid PDF file.");
       setIsLoading(false);
     }
-  };
-
-  const handleCheckResult = () => {
-    router.push("/analysis");
   };
 
   return (
@@ -121,76 +118,79 @@ export default function Home() {
               Selected file: {file.name}
             </p>
           )}
-          {/* 버튼 렌더링 로직 변경 */}
-          {!isProcessingComplete ? (
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white px-6 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-300 ease-in-out flex items-center justify-center"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-5 h-5 mr-2" />
-                  Analyze Contract
-                </>
-              )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleCheckResult}
-              className="w-full bg-green-600 text-white px-6 py-4 rounded-xl text-lg font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-300 ease-in-out flex items-center justify-center"
-            >
-              <CheckCircle className="w-5 h-5 mr-2" />
-              Check the Result
-            </button>
-          )}
-        </form>
-        {/* 에러 메시지 표시 섹션 */}
-        {error && (
-          <div
-            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-6"
-            role="alert"
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white px-6 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-300 ease-in-out flex items-center justify-center"
+            disabled={isLoading}
           >
-            <strong className="font-bold">Error:</strong>
-            <span className="block sm:inline"> {error}</span>
+            {isLoading ? (
+              <>
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              <>
+                <Upload className="w-5 h-5 mr-2" />
+                Analyze Contract
+              </>
+            )}
+          </button>
+        </form>
+        <div className="bg-white shadow-lg rounded-xl p-8 mt-12">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+            How It Works
+          </h2>
+          <div className="space-y-6">
+            <div className="flex items-start">
+              <AlertTriangle className="w-8 h-8 text-yellow-500 mr-4 flex-shrink-0" />
+              <p className="text-lg text-gray-600">
+                Our AI analyzes your business contract to identify potentially
+                problematic clauses or terms that require careful review.
+              </p>
+            </div>
+            <div className="flex items-start">
+              <CheckCircle className="w-8 h-8 text-green-500 mr-4 flex-shrink-0" />
+              <p className="text-lg text-gray-600">
+                We highlight key areas of concern, helping you focus on the most
+                critical parts of the agreement.
+              </p>
+            </div>
+            <div className="flex items-start">
+              <Clock className="w-8 h-8 text-blue-500 mr-4 flex-shrink-0" />
+              <p className="text-lg text-gray-600">
+                Save time and reduce risk by quickly identifying clauses that
+                may need negotiation or legal review.
+              </p>
+            </div>
           </div>
-        )}
-        {/* 결과 표시 섹션 */}
-        {result && (
-          <div className="bg-white shadow-lg rounded-xl p-8 mt-12">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-              Processing Result
-            </h2>
-            <p className="mb-4 text-gray-700">File uploaded: {result.path}</p>
-            <p className="mb-4 text-gray-700">File ID: {result.id}</p>
-            <p className="mb-4 text-gray-700">Full Path: {result.fullPath}</p>
+          <div className="mt-8 text-base text-gray-500">
+            <p>
+              Our goal is to empower you with insights into your business
+              contracts, helping you make informed decisions and protect your
+              interests. While our analysis is thorough, we always recommend
+              consulting with a legal professional for final review and advice.
+            </p>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
