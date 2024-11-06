@@ -1,9 +1,8 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import { headers } from "next/headers";
 import { X } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { useState } from "react";
 
 interface SectionData {
   title: string;
@@ -13,71 +12,23 @@ interface SectionData {
   textColor: string;
 }
 
-export default function AnalysisPage() {
-  const [result, setResult] = useState<{
-    high: string[];
-    medium: string[];
-    low: string[];
-  } | null>(null);
+// 데이터를 서버에서 직접 가져오는 함수
+async function getData() {
+  const res = await fetch("/api/get-final-result", {
+    headers: headers(), // 서버에서 요청을 보낼 때 사용할 헤더
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch data");
+  }
+
+  return res.json();
+}
+
+// Server Component로 데이터 fetching 처리
+export default async function AnalysisPage() {
+  const result = await getData();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // 데이터 로드 상태를 로그로 확인
-  console.log("AnalysisPage component has rendered");
-
-  // 데이터를 가져오는 함수
-  useEffect(() => {
-    const fetchAnalysisData = async () => {
-      console.log("Starting to fetch analysis data..."); // 데이터 가져오기 시작 로그
-      const response = await fetch("/api/get-final-result");
-      try {
-        if (!response.ok) {
-          throw new Error("Failed to fetch analysis data");
-        }
-        const data = await response.json();
-        console.log("Fetched analysis data:", data); // 데이터 성공적으로 가져온 경우 로그
-        setResult(data);
-      } catch (error) {
-        console.error("Error fetching analysis data:", error);
-        setError("Failed to load analysis result.");
-        setResult(null);
-      } finally {
-        setLoading(false);
-        console.log(response);
-      }
-    };
-    fetchAnalysisData();
-  }, []);
-
-  if (loading) {
-    console.log("Loading data..."); // 로딩 중 상태 로그
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <p className="text-xl font-semibold text-gray-600">Loading...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    console.log("Error occurred:", error); // 오류 상태 로그
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <p className="text-xl font-semibold text-red-600">{error}</p>
-      </div>
-    );
-  }
-
-  if (!result) {
-    console.log("No results available."); // 결과가 없는 상태 로그
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <p className="text-xl font-semibold text-red-600">
-          No results available.
-        </p>
-      </div>
-    );
-  }
 
   const sections: SectionData[] = [
     {
@@ -107,7 +58,6 @@ export default function AnalysisPage() {
   ];
 
   const downloadPDF = () => {
-    console.log("Download PDF button clicked"); // PDF 다운로드 클릭 로그
     const doc = new jsPDF();
     doc.text("Contract Analysis Result", 10, 10);
     sections.forEach((section, index) => {
@@ -150,10 +100,7 @@ export default function AnalysisPage() {
               <div
                 key={index}
                 className={`p-8 rounded-lg shadow-md ${section.bgColor} cursor-pointer transition-all duration-300 hover:shadow-lg`}
-                onClick={() => {
-                  console.log(`Section "${section.title}" clicked`); // 섹션 클릭 로그
-                  setExpandedSection(section.title);
-                }}
+                onClick={() => setExpandedSection(section.title)}
               >
                 <h2
                   className={`mb-3 text-xl font-semibold ${section.textColor}`}
@@ -186,10 +133,7 @@ export default function AnalysisPage() {
       {expandedSection && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-          onClick={() => {
-            console.log("Expanded section closed"); // 팝업 닫기 로그
-            setExpandedSection(null);
-          }}
+          onClick={() => setExpandedSection(null)}
         >
           <div
             className={`w-full max-w-2xl p-6 rounded-lg shadow-xl bg-white relative overflow-y-auto ${
