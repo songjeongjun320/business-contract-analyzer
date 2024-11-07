@@ -1,8 +1,9 @@
-import { headers } from "next/headers";
+"use client";
+
 import { X } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface SectionData {
   title: string;
@@ -12,11 +13,9 @@ interface SectionData {
   textColor: string;
 }
 
-// 데이터를 서버에서 직접 가져오는 함수
-async function getData() {
-  const res = await fetch("/api/get-final-result", {
-    headers: headers(), // 서버에서 요청을 보낼 때 사용할 헤더
-  });
+// 데이터를 클라이언트에서 가져오는 함수
+async function fetchClientData() {
+  const res = await fetch("/api/get-final-result");
 
   if (!res.ok) {
     throw new Error("Failed to fetch data");
@@ -25,10 +24,30 @@ async function getData() {
   return res.json();
 }
 
-// Server Component로 데이터 fetching 처리
-export default async function AnalysisPage() {
-  const result = await getData();
+// Client Component로 데이터 fetching 처리
+export default function AnalysisPage() {
+  const [result, setResult] = useState<{
+    high: string[];
+    medium: string[];
+    low: string[];
+  } | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // 클라이언트에서 데이터를 가져오기
+    fetchClientData()
+      .then(setResult)
+      .catch(() => setError("Failed to load data"));
+  }, []);
+
+  if (error) {
+    return <div>{error}</div>;
+  }
+
+  if (!result) {
+    return <div>Loading...</div>;
+  }
 
   const sections: SectionData[] = [
     {
@@ -87,46 +106,35 @@ export default async function AnalysisPage() {
           </button>
         </div>
         <div className="flex flex-col gap-6">
-          {sections
-            .sort((a, b) => {
-              const order: { [key: string]: number } = {
-                "High Risk": 1,
-                "Moderate Risk": 2,
-                "Low Risk": 3,
-              };
-              return order[a.title] - order[b.title];
-            })
-            .map((section, index) => (
-              <div
-                key={index}
-                className={`p-8 rounded-lg shadow-md ${section.bgColor} cursor-pointer transition-all duration-300 hover:shadow-lg`}
-                onClick={() => setExpandedSection(section.title)}
-              >
-                <h2
-                  className={`mb-3 text-xl font-semibold ${section.textColor}`}
-                >
-                  {section.title}
-                </h2>
-                <p className="mb-2 text-sm text-gray-600">
-                  {section.description}
+          {sections.map((section, index) => (
+            <div
+              key={index}
+              className={`p-8 rounded-lg shadow-md ${section.bgColor} cursor-pointer transition-all duration-300 hover:shadow-lg`}
+              onClick={() => setExpandedSection(section.title)}
+            >
+              <h2 className={`mb-3 text-xl font-semibold ${section.textColor}`}>
+                {section.title}
+              </h2>
+              <p className="mb-2 text-sm text-gray-600">
+                {section.description}
+              </p>
+              <ul className="space-y-2">
+                {section.items.slice(0, 2).map((item, itemIndex) => (
+                  <li key={itemIndex} className="flex items-start">
+                    <span className={`mr-2 text-lg ${section.textColor}`}>
+                      •
+                    </span>
+                    <span className="text-gray-700">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              {section.items.length > 2 && (
+                <p className="mt-2 text-sm text-gray-500">
+                  Click to see more...
                 </p>
-                <ul className="space-y-2">
-                  {section.items.slice(0, 2).map((item, itemIndex) => (
-                    <li key={itemIndex} className="flex items-start">
-                      <span className={`mr-2 text-lg ${section.textColor}`}>
-                        •
-                      </span>
-                      <span className="text-gray-700">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                {section.items.length > 2 && (
-                  <p className="mt-2 text-sm text-gray-500">
-                    Click to see more...
-                  </p>
-                )}
-              </div>
-            ))}
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
