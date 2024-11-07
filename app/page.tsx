@@ -41,13 +41,10 @@ export default function Home() {
     const timeoutId = setTimeout(() => controller.abort(), 600000); // 10분 타임아웃
 
     try {
-      console.log(
-        "Flask server URL:",
-        process.env.NEXT_PUBLIC_FLASK_REDIRECT_URL
-      );
+      console.log("Flask server URL:", process.env.NEXT_PUBLIC_LOCAL);
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_FLASK_REDIRECT_URL!}/process`,
+        `${process.env.NEXT_PUBLIC_LOCAL!}/process`,
         {
           method: "POST",
           body: formData,
