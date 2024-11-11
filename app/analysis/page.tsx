@@ -17,7 +17,10 @@ interface SectionData {
 async function fetchClientData() {
   const res = await fetch("/api/get-final-result");
 
+  console.log("Log-- Response object from Supabase:", res); // 응답 객체를 콘솔에 출력
+
   if (!res.ok) {
+    console.error("Fetch failed with status:", res.status, res.statusText);
     throw new Error("Failed to fetch data");
   }
 
