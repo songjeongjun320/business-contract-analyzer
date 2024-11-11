@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 
-// BASE_DIRECTORY를 항상 "/tmp"로 고정
-const BASE_DIRECTORY = "/tmp";
+// 환경에 따른 기본 디렉토리 설정
+const BASE_DIRECTORY =
+  process.env.NODE_ENV === "production"
+    ? "/tmp" // Vercel의 임시 디렉토리
+    : path.join(process.cwd(), "tmp"); // 로컬 환경의 tmp 디렉토리
 
 console.log("BASE_DIRECTORY set to:", BASE_DIRECTORY);
 console.log("Current NODE_ENV:", process.env.NODE_ENV);

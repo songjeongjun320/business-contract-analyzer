@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Upload, CheckCircle } from "lucide-react";
 import { PDFDocument } from "pdf-lib"; // pdf-lib 추가
+import { time } from "console";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -150,7 +151,10 @@ export default function Home() {
   };
 
   const handleCheckResult = () => {
-    router.push("/analysis");
+    // Remove time.sleep and use setTimeout for delay if needed
+    setTimeout(() => {
+      router.push("/analysis");
+    }, 2000); // Delay of 1 second (1000 milliseconds)
   };
 
   return (
