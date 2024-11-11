@@ -115,7 +115,7 @@ export default function Home() {
       try {
         // Flask 서버에 각 페이지를 요청
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_LOCAL!}/process`,
+          `${process.env.NEXT_PUBLIC_FLASK_REDIRECT_URL!}/process`,
           {
             method: "POST",
             body: formData,
