@@ -155,10 +155,7 @@ export default function Home() {
   };
 
   const handleCheckResult = () => {
-    // Remove time.sleep and use setTimeout for delay if needed
-    setTimeout(() => {
-      router.push("/analysis");
-    }, 2000); // Delay of 1 second (1000 milliseconds)
+    router.push("/analysis");
   };
 
   return (
