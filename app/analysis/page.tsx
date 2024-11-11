@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 interface SectionData {
@@ -14,10 +14,9 @@ interface SectionData {
   textColor: string;
 }
 
-// 데이터를 클라이언트에서 가져오는 함수
 async function fetchClientData(fileName: string) {
   console.log("Starting data fetch for file:", fileName);
-  await new Promise((resolve) => setTimeout(resolve, 5000)); // 대기 시간 추가
+  await new Promise((resolve) => setTimeout(resolve, 5000));
 
   const res = await fetch(
     `/api/get-final-result?fileName=${encodeURIComponent(fileName)}`
@@ -35,10 +34,9 @@ async function fetchClientData(fileName: string) {
   return jsonData;
 }
 
-// Client Component로 데이터 fetching 처리
-export default function AnalysisPage() {
+function AnalysisContent() {
   const searchParams = useSearchParams();
-  const filePath = searchParams.get("filePath"); // URL 쿼리에서 filePath를 가져옵니다.
+  const filePath = searchParams.get("filePath");
   const [result, setResult] = useState<{
     high: string[];
     medium: string[];
@@ -50,7 +48,6 @@ export default function AnalysisPage() {
   useEffect(() => {
     console.log("useEffect triggered. filePath:", filePath);
 
-    // filePath이 존재할 때만 데이터를 가져옵니다.
     if (filePath) {
       console.log("Fetching data for filePath:", filePath);
 
@@ -224,5 +221,13 @@ export default function AnalysisPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AnalysisPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AnalysisContent />
+    </Suspense>
   );
 }
