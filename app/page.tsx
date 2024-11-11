@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Upload, CheckCircle } from "lucide-react";
 import { PDFDocument } from "pdf-lib"; // pdf-lib 추가
+import path from "path";
 import { time } from "console";
 
 export default function Home() {
@@ -53,7 +54,10 @@ export default function Home() {
       console.log("Final accumulated results:", pdfResultData);
 
       // 최종 결과 JSON 파일 저장
-      const savePath = "/tmp/final_results.json";
+      const savePath =
+        process.env.NODE_ENV === "production"
+          ? "/tmp" // Vercel의 임시 디렉토리
+          : path.join(process.cwd(), "/db"); // 로컬 환경의 tmp 디렉토리
       await saveFileWithUniqueName(savePath, pdfResultData);
 
       setIsProcessingComplete(true);

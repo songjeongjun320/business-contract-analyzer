@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
   // Vercel의 임시 디렉토리 경로 설정
   const isVercel = process.env.VERCEL_ENV === "production";
-  const tmpDir = isVercel ? "/tmp" : path.resolve(process.cwd(), "tmp"); // 로컬에서 tmp 디렉토리 사용
+  const tmpDir = isVercel ? "/tmp" : path.resolve(process.cwd(), "db"); // 로컬에서 tmp 디렉토리 사용
   const baseFileName = "final_results.json";
   console.log("Directory for saving file:", tmpDir);
 
