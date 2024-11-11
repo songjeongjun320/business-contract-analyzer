@@ -25,8 +25,13 @@ async function getFinalResultsFile() {
       return null;
     }
 
+    // 파일 텍스트 내용 출력
     const fileText = await fileData.text();
-    return JSON.parse(fileText); // JSON 데이터로 파싱하여 반환
+    console.log("Raw file content:", fileText);
+
+    const parsedData = JSON.parse(fileText);
+    console.log("Parsed JSON content:", parsedData); // JSON 파싱 후 출력
+    return parsedData; // JSON 데이터로 파싱하여 반환
   } catch (error) {
     console.error("Failed to fetch final_results.json:", error);
     return null;
