@@ -52,7 +52,7 @@ export default function Home() {
       console.log("Final accumulated results:", pdfResultData);
 
       // 최종 결과 JSON 파일 저장
-      const savePath = "/app/db/result/final_results.json";
+      const savePath = "/tmp/final_results.json";
       await saveFileWithUniqueName(savePath, pdfResultData);
 
       setIsProcessingComplete(true);
