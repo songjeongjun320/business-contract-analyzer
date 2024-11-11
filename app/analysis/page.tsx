@@ -15,6 +15,8 @@ interface SectionData {
 
 // 데이터를 클라이언트에서 가져오는 함수
 async function fetchClientData() {
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
   const res = await fetch("/api/get-final-result");
 
   console.log("Log-- Response object from Supabase:", res); // 응답 객체를 콘솔에 출력
