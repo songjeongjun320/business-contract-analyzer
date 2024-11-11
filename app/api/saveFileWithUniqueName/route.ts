@@ -14,6 +14,21 @@ type FinalData = {
   low: any[];
 };
 
+// 현재 시간 기반 파일명 생성 함수
+function generateTimestampedFileName(baseName: string) {
+  const now = new Date();
+  const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(
+    2,
+    "0"
+  )}${String(now.getMinutes()).padStart(2, "0")}${String(
+    now.getSeconds()
+  ).padStart(2, "0")}`;
+  return `${baseName}_${timestamp}.json`;
+}
+
 export async function POST(req: Request) {
   const { data } = await req.json();
   console.log("Received request:", { data });
@@ -21,9 +36,8 @@ export async function POST(req: Request) {
   // Vercel의 임시 디렉토리 경로 설정
   const isVercel = process.env.VERCEL_ENV === "production";
   const tmpDir = isVercel ? "/tmp" : path.resolve(process.cwd(), "db"); // 로컬에서는 db 디렉토리 사용
-  const baseFileName = "final_results.json";
+  const baseFileName = generateTimestampedFileName("final_results");
   let filePath = path.join(tmpDir, baseFileName);
-  let count = 1;
 
   try {
     // 디렉토리가 없으면 생성
@@ -51,11 +65,12 @@ export async function POST(req: Request) {
 
     // Supabase Storage에 업로드
     const fileBuffer = fs.readFileSync(filePath);
+    const supabaseFileName = `${baseFileName}`; // Supabase에 저장될 파일명
 
     // Supabase에 파일 업로드
     const { data: uploadData, error } = await supabase.storage
       .from("result")
-      .upload("final_results.json", fileBuffer, {
+      .upload(supabaseFileName, fileBuffer, {
         contentType: "application/json",
         upsert: true, // 덮어쓰기 옵션
       });
@@ -64,13 +79,11 @@ export async function POST(req: Request) {
 
     console.log("File uploaded successfully to Supabase:", uploadData);
 
-    const supabasePath = `result/final_results.json`; // Define supabasePath
-
     // 성공적으로 저장 및 업로드되었음을 응답
     return NextResponse.json({
       message: "File saved locally and uploaded to Supabase successfully",
       localPath: filePath,
-      supabasePath: supabasePath,
+      supabasePath: supabaseFileName,
     });
   } catch (error) {
     console.error("Error during file saving or uploading:", error);

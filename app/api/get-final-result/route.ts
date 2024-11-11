@@ -6,20 +6,22 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const BUCKET_NAME = "result";
-const FILE_NAME = "final_results.json";
 
 // Supabase에서 최신 final_results.json 파일 가져오기 함수
-async function getFinalResultsFile() {
+async function getFinalResultsFile(fileName: string) {
   try {
-    console.log("Fetching final_results.json from Supabase Storage...");
+    console.log(`Fetching ${fileName} from Supabase Storage...`);
 
     // Supabase Storage에서 특정 파일 다운로드
     const { data: fileData, error } = await supabase.storage
       .from(BUCKET_NAME)
-      .download(FILE_NAME);
+      .download(fileName);
 
     if (error) {
-      console.error("Failed to download file from Supabase Storage:", error);
+      console.error(
+        `Failed to download ${fileName} from Supabase Storage:`,
+        error
+      );
       return null;
     }
 
@@ -30,7 +32,7 @@ async function getFinalResultsFile() {
     console.log("Parsed JSON content:", parsedData); // JSON 파싱 후 출력
     return parsedData; // JSON 데이터로 반환
   } catch (error) {
-    console.error("Failed to fetch final_results.json:", error);
+    console.error(`Failed to fetch ${fileName}:`, error);
     return null;
   }
 }
@@ -47,20 +49,22 @@ function removeEmptyValues(jsonData: any) {
   }
   return cleanedData;
 }
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const fileName = url.searchParams.get("fileName") || "final_results.json"; // 기본 파일명 설정
 
-export async function GET() {
-  console.log("GET request received for final results.");
+  console.log(`Fetching ${fileName} from Supabase Storage...`);
   console.log("Current timestamp:", new Date().toISOString());
 
   // 대기 시간 추가 (필요 시 조정 가능)
   await new Promise((resolve) => setTimeout(resolve, 3000));
 
   try {
-    const parsedData = await getFinalResultsFile();
+    const parsedData = await getFinalResultsFile(fileName); // 여기서 파일명 전달
     if (!parsedData) {
-      console.error("No final_results.json file found.");
+      console.error(`No ${fileName} file found.`);
       return NextResponse.json(
-        { error: "No final_results.json file found" },
+        { error: `No ${fileName} file found` },
         { status: 404, headers: { "Cache-Control": "no-store, max-age=0" } } // 캐시 방지 헤더 추가
       );
     }

@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 interface SectionData {
   title: string;
@@ -14,23 +15,30 @@ interface SectionData {
 }
 
 // 데이터를 클라이언트에서 가져오는 함수
-async function fetchClientData() {
-  await new Promise((resolve) => setTimeout(resolve, 5000));
+async function fetchClientData(fileName: string) {
+  console.log("Starting data fetch for file:", fileName);
+  await new Promise((resolve) => setTimeout(resolve, 5000)); // 대기 시간 추가
 
-  const res = await fetch("/api/get-final-result");
+  const res = await fetch(
+    `/api/get-final-result?fileName=${encodeURIComponent(fileName)}`
+  );
 
-  console.log("Log-- Response object from Supabase:", res); // 응답 객체를 콘솔에 출력
+  console.log("Received response from Supabase fetch:", res);
 
   if (!res.ok) {
     console.error("Fetch failed with status:", res.status, res.statusText);
     throw new Error("Failed to fetch data");
   }
 
-  return res.json();
+  const jsonData = await res.json();
+  console.log("Parsed JSON data from Supabase:", jsonData);
+  return jsonData;
 }
 
 // Client Component로 데이터 fetching 처리
 export default function AnalysisPage() {
+  const searchParams = useSearchParams();
+  const filePath = searchParams.get("filePath"); // URL 쿼리에서 filePath를 가져옵니다.
   const [result, setResult] = useState<{
     high: string[];
     medium: string[];
@@ -40,19 +48,37 @@ export default function AnalysisPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 클라이언트에서 데이터를 가져오기
-    fetchClientData()
-      .then(setResult)
-      .catch(() => setError("Failed to load data"));
-  }, []);
+    console.log("useEffect triggered. filePath:", filePath);
+
+    // filePath이 존재할 때만 데이터를 가져옵니다.
+    if (filePath) {
+      console.log("Fetching data for filePath:", filePath);
+
+      fetchClientData(filePath)
+        .then((data) => {
+          console.log("Data fetched successfully:", data);
+          setResult(data);
+        })
+        .catch((fetchError) => {
+          console.error("Error fetching data:", fetchError);
+          setError("Failed to load data");
+        });
+    } else {
+      console.warn("No filePath provided. Skipping data fetch.");
+    }
+  }, [filePath]);
 
   if (error) {
+    console.error("Rendering error state with message:", error);
     return <div>{error}</div>;
   }
 
   if (!result) {
+    console.log("Result not loaded yet, rendering loading state.");
     return <div>Loading...</div>;
   }
+
+  console.log("Rendering result data:", result);
 
   const sections: SectionData[] = [
     {
@@ -82,6 +108,7 @@ export default function AnalysisPage() {
   ];
 
   const downloadPDF = () => {
+    console.log("Starting PDF download.");
     const doc = new jsPDF();
     doc.text("Contract Analysis Result", 10, 10);
     sections.forEach((section, index) => {
@@ -94,6 +121,7 @@ export default function AnalysisPage() {
       });
     });
     doc.save("analysis_result.pdf");
+    console.log("PDF download completed.");
   };
 
   return (
