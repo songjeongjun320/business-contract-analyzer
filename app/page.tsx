@@ -90,43 +90,53 @@ export default function Home() {
     const arrayBuffer = await file.arrayBuffer();
     const pdfDoc = await PDFDocument.load(arrayBuffer);
     const numPages = pdfDoc.getPages().length;
+    let allResultsData: any[] = [];
 
-    const allResultsData = await Promise.all(
-      Array.from({ length: numPages }).map(async (_, i) => {
-        const newPdfDoc = await PDFDocument.create();
-        const [page] = await newPdfDoc.copyPages(pdfDoc, [i]);
-        newPdfDoc.addPage(page);
+    // 각 페이지를 개별적으로 처리
+    for (let i = 0; i < numPages; i++) {
+      const newPdfDoc = await PDFDocument.create();
+      const [page] = await newPdfDoc.copyPages(pdfDoc, [i]);
+      newPdfDoc.addPage(page);
 
-        const pdfBytes = await newPdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const pdfBytes = await newPdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
 
-        const pageFileName = `page_${i + 1}.pdf`;
-        const formData = new FormData();
-        formData.append("file", blob, pageFileName);
+      // 페이지별로 임시 저장 경로 설정
+      const pageFileName = `page_${i + 1}.pdf`;
+      const tempFilePath = `/tmp/${pageFileName}`; // 예시로 /tmp 폴더에 저장 경로
 
-        try {
-          const response = await fetch(
-            `${process.env.NEXT_PUBLIC_FLASK_REDIRECT_URL!}/process`,
-            {
-              method: "POST",
-              body: formData,
-            }
-          );
+      // 파일을 서버 또는 로컬에 저장하는 코드 추가 (예: 임시 디렉터리)
+      console.log(`Saving page ${i + 1} as: ${tempFilePath}`);
 
-          if (!response.ok) {
-            throw new Error(`Failed to process page ${i + 1}`);
+      // 서버에 파일을 전송
+      const formData = new FormData();
+      formData.append("file", blob, pageFileName);
+
+      try {
+        // Flask 서버에 각 페이지를 요청
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_LOCAL!}/process`,
+          {
+            method: "POST",
+            body: formData,
           }
+        );
 
-          const pageResultData = await response.text();
-          return pageResultData;
-        } catch (error) {
-          console.error(`Error processing page ${i + 1}:`, error);
-          return null;
+        if (!response.ok) {
+          throw new Error(`Failed to process page ${i + 1}`);
         }
-      })
-    );
 
-    return allResultsData.filter(Boolean); // null 값을 제거하고 반환
+        const blobResponse = await response.blob();
+        const pageResultData = await blobResponse.text();
+
+        // 서버에서 받은 결과를 기존 데이터에 누적
+        allResultsData.push(pageResultData);
+      } catch (error) {
+        console.error(`Error processing page ${i + 1}:`, error);
+      }
+    }
+
+    return allResultsData;
   };
 
   const handleCheckResult = () => {
