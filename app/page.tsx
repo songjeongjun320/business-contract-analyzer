@@ -42,7 +42,10 @@ export default function Home() {
     // const timeoutId = setTimeout(() => controller.abort(), 600000); // 10분 타임아웃
 
     try {
-      console.log("Flask server URL:", process.env.NEXT_PUBLIC_LOCAL);
+      console.log(
+        "Flask server URL:",
+        process.env.NEXT_PUBLIC_FLASK_REDIRECT_URL
+      );
 
       // PDF 페이지 분리하여 서버에 보내기
       const pdfResultData = await processPDF(file);
@@ -122,7 +125,7 @@ export default function Home() {
       try {
         // Flask 서버에 각 페이지를 요청
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_LOCAL!}/process`,
+          `${process.env.NEXT_PUBLIC_FLASK_REDIRECT_URL!}/process`,
           {
             method: "POST",
             body: formData,
