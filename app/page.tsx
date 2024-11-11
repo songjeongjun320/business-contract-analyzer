@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Upload, CheckCircle } from "lucide-react";
+import { PDFDocument } from "pdf-lib"; // pdf-lib 추가
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -38,31 +39,18 @@ export default function Home() {
     formData.append("file", file);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 600000); // 10분 타임아웃
+    // const timeoutId = setTimeout(() => controller.abort(), 600000); // 10분 타임아웃
 
     try {
       console.log("Flask server URL:", process.env.NEXT_PUBLIC_LOCAL);
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_LOCAL!}/process`,
-        {
-          method: "POST",
-          body: formData,
-          signal: controller.signal,
-        }
-      );
+      // PDF 페이지 분리하여 서버에 보내기
+      const pdfResultData = await processPDF(file);
+      console.log("Final accumulated results:", pdfResultData);
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error("Failed to send PDF to Flask server");
-      }
-
-      const blob = await response.blob();
-      const finalResultsData = await blob.text();
-
+      // 최종 결과 JSON 파일 저장
       const savePath = "/app/db/result/final_results.json";
-      await saveFileWithUniqueName(savePath, finalResultsData);
+      await saveFileWithUniqueName(savePath, pdfResultData);
 
       setIsProcessingComplete(true);
     } catch (error) {
@@ -102,6 +90,60 @@ export default function Home() {
 
     // 필요에 따라 경로를 사용할 수 있음
     result_file_path = result.filePath;
+  };
+
+  // PDF 파일을 페이지별로 분리하고 각 페이지를 서버에 전송하는 함수
+  const processPDF = async (file: File) => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    const numPages = pdfDoc.getPages().length;
+    let allResultsData: any[] = [];
+
+    // 각 페이지를 개별적으로 처리
+    for (let i = 0; i < numPages; i++) {
+      const newPdfDoc = await PDFDocument.create();
+      const [page] = await newPdfDoc.copyPages(pdfDoc, [i]);
+      newPdfDoc.addPage(page);
+
+      const pdfBytes = await newPdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+
+      // 페이지별로 임시 저장 경로 설정
+      const pageFileName = `page_${i + 1}.pdf`;
+      const tempFilePath = `/tmp/${pageFileName}`; // 예시로 /tmp 폴더에 저장 경로
+
+      // 파일을 서버 또는 로컬에 저장하는 코드 추가 (예: 임시 디렉터리)
+      console.log(`Saving page ${i + 1} as: ${tempFilePath}`);
+
+      // 서버에 파일을 전송
+      const formData = new FormData();
+      formData.append("file", blob, pageFileName);
+
+      try {
+        // Flask 서버에 각 페이지를 요청
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_LOCAL!}/process`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to process page ${i + 1}`);
+        }
+
+        const blobResponse = await response.blob();
+        const pageResultData = await blobResponse.text();
+
+        // 서버에서 받은 결과를 기존 데이터에 누적
+        allResultsData.push(pageResultData);
+      } catch (error) {
+        console.error(`Error processing page ${i + 1}:`, error);
+      }
+    }
+
+    return allResultsData;
   };
 
   const handleCheckResult = () => {

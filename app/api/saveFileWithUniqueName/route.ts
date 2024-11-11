@@ -2,6 +2,13 @@ import fs from "fs";
 import path from "path";
 import { NextResponse } from "next/server";
 
+// Define the type for finalData
+type FinalData = {
+  high: any[]; // You can replace 'any' with a more specific type if known
+  medium: any[];
+  low: any[];
+};
+
 // POST 메서드로 요청 처리
 export async function POST(req: Request) {
   const { data } = await req.json();
@@ -39,11 +46,33 @@ export async function POST(req: Request) {
     count++;
   }
 
+  // 요청마다 독립된 finalData 객체 생성
+  const finalData: FinalData = { high: [], medium: [], low: [] };
+
+  // 데이터를 재가공하여 합치기
+  data.forEach((item: string) => {
+    const parsedItem = JSON.parse(item); // 문자열을 JSON 객체로 파싱
+
+    // high, medium, low를 각각 누적
+    if (parsedItem.high && Array.isArray(parsedItem.high)) {
+      finalData.high.push(...parsedItem.high);
+    }
+    if (parsedItem.medium && Array.isArray(parsedItem.medium)) {
+      finalData.medium.push(...parsedItem.medium);
+    }
+    if (parsedItem.low && Array.isArray(parsedItem.low)) {
+      finalData.low.push(...parsedItem.low);
+    }
+  });
+
+  // JSON 문자열로 변환
+  const finalDataString = JSON.stringify(finalData, null, 2);
+
   // 파일 저장
   try {
-    console.log("Data to be saved:", data);
+    console.log("Data to be saved:", finalDataString);
     console.log("Final file path:", filePath);
-    fs.writeFileSync(filePath, data, "utf8");
+    fs.writeFileSync(filePath, finalDataString, "utf8");
     console.log("File saved successfully at:", filePath);
     return NextResponse.json({ message: "File saved successfully", filePath });
   } catch (error) {
