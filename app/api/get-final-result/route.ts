@@ -56,9 +56,6 @@ export async function GET(req: Request) {
   console.log(`Fetching ${fileName} from Supabase Storage...`);
   console.log("Current timestamp:", new Date().toISOString());
 
-  // 대기 시간 추가 (필요 시 조정 가능)
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-
   try {
     const parsedData = await getFinalResultsFile(fileName); // 여기서 파일명 전달
     if (!parsedData) {

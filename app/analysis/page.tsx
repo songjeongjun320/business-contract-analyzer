@@ -16,7 +16,6 @@ interface SectionData {
 
 async function fetchClientData(fileName: string) {
   console.log("Starting data fetch for file:", fileName);
-  await new Promise((resolve) => setTimeout(resolve, 5000));
 
   const res = await fetch(
     `/api/get-final-result?fileName=${encodeURIComponent(fileName)}`
