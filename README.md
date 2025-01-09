@@ -18,7 +18,7 @@ The **Toxic Clauses Detector** offers a simple, easy-to-use solution to detect s
 
 🌐 **Visit the live website** to use the Toxic Clauses Detector in Business Contracts:
 
-👉 [Live Website](https://toxic-clauses-detector-in-business-contract.vercel.app/)
+👉 [Live Website](https://business-contract-analyzer.vercel.app/)
 
 ### **2. Features**
 
